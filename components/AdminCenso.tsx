@@ -25,6 +25,20 @@ function extrair(json: unknown): Seguidor[] {
   return out;
 }
 
+// Versão HTML do download do Instagram: cada seguidor é um link instagram.com/@ seguido da data (horário do Pacífico).
+function extrairHtml(html: string): Seguidor[] {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const out: Seguidor[] = [];
+  doc.querySelectorAll('a[href*="instagram.com/"]').forEach((a) => {
+    const h = (a.getAttribute('href') || '').replace(/\/+$/, '').split('/').pop()!.toLowerCase();
+    if (!HANDLE_RE.test(h)) return;
+    const data = a.parentElement?.nextElementSibling?.textContent?.trim() || '';
+    const ms = Date.parse(data.replace(/ (am|pm)$/i, (m) => m.toUpperCase()) + ' GMT-0800');
+    out.push({ h, t: Number.isFinite(ms) ? Math.floor(ms / 1000) : undefined });
+  });
+  return out;
+}
+
 export default function AdminCenso() {
   const [senha, setSenha] = useState('');
   const [lista, setLista] = useState<Seguidor[]>([]);
@@ -41,8 +55,10 @@ export default function AdminCenso() {
     setMsg(''); if (!files?.length) return;
     const todos: Seguidor[] = [];
     for (const f of Array.from(files)) {
-      try { todos.push(...extrair(JSON.parse(await f.text()))); }
-      catch { setMsg(`${f.name} não é um JSON. No Instagram, peça o download no formato JSON (não HTML).`); return; }
+      const txt = await f.text();
+      if (/<html/i.test(txt)) { todos.push(...extrairHtml(txt)); continue; }
+      try { todos.push(...extrair(JSON.parse(txt))); }
+      catch { setMsg(`Não consegui ler ${f.name}. Envie o followers_1.json ou o followers_1.html do download do Instagram.`); return; }
     }
     const unicos = new Map<string, Seguidor>();
     todos.forEach((s) => { const a = unicos.get(s.h); if (!a || (s.t && (!a.t || s.t < a.t))) unicos.set(s.h, s); });
@@ -144,10 +160,10 @@ export default function AdminCenso() {
         <h2>1. Enviar os seguidores</h2>
         <ol className="passos">
           <li>No app do Instagram do @{PREDIO.instagram}: Central de Contas, Suas informações e permissões, Baixar suas informações.</li>
-          <li>Escolha só Seguidores e seguindo, formato JSON, período Desde o início.</li>
-          <li>Quando chegar o arquivo, abra o .zip e envie aqui o followers_1.json (e followers_2.json se tiver).</li>
+          <li>Escolha só Seguidores e seguindo, formato JSON ou HTML, período Desde o início.</li>
+          <li>Quando chegar o arquivo, abra o .zip e envie aqui o followers_1 (.json ou .html; e o followers_2 se tiver).</li>
         </ol>
-        <input type="file" accept=".json,application/json" multiple onChange={(e) => ler(e.target.files)} />
+        <input type="file" accept=".json,.html,application/json,text/html" multiple onChange={(e) => ler(e.target.files)} />
         <button className="primario" disabled={!lista.length || !senha || ocupado} onClick={enviar}>Enviar {lista.length ? lista.length.toLocaleString('pt-BR') : ''} seguidores pra fila</button>
       </section>
 
