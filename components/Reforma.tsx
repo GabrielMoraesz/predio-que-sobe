@@ -32,6 +32,7 @@ const DUVIDAS: [string, string][] = [
   ['Os itens dão alguma vantagem?', 'Não. É tudo visual: muda como o seu boneco aparece no prédio e nos vídeos.'],
   ['Como funciona o pagamento?', 'Pagamento único no Pix: copie o código (ou leia o QR) no app do banco. Guarde o código do pedido que aparece na tela.'],
   ['Sou menor de idade, posso comprar?', 'Peça pra um responsável antes. É ele quem faz o Pix.'],
+  ['Me arrependi. Posso pedir o dinheiro de volta?', 'Pode, em até 7 dias depois do pagamento. Peça em Pedir devolução com o código do pedido: o Pix volta pra mesma conta que pagou e o item sai do boneco.'],
 ];
 
 export default function Reforma({ itens, inicial }: { itens: Item[]; inicial?: Morador | null }) {
@@ -203,7 +204,7 @@ export default function Reforma({ itens, inicial }: { itens: Item[]; inicial?: M
             <div className="total"><dt>Total</dt><dd className="lcd">{mudou && alvo && !fixo ? reais(total) : reais(0)}</dd></div>
           </dl>
           <button type="button" className="primario pagar" onClick={comprar} disabled={ocupado || (!!alvo && (!mudou || fixo))}>{rotuloBotao}</button>
-          <p className="nota">Pagamento único no Pix. O visual vai pra janela assim que o pagamento é confirmado.</p>
+          <p className="nota">Pagamento único no Pix. O visual vai pra janela assim que o pagamento é confirmado. Se arrepender, devolvemos em até 7 dias (<Link href="/regras">regras da loja</Link>).</p>
         </section>
       </div>
 
@@ -214,6 +215,7 @@ export default function Reforma({ itens, inicial }: { itens: Item[]; inicial?: M
 
       <footer className="reforma-rodape">
         <p>Uma história do @{PREDIO.instagram}. Cada morador é um seguidor de verdade. Dúvidas ou pra sair do prédio: manda DM.</p>
+        <p><Link href="/regras">Regras da loja</Link> · <Link href="/reembolso">Pedir devolução</Link></p>
       </footer>
 
       <dialog ref={dialog} className="pix escuro" onClose={() => setPedido((p) => (p?.status === 'pago' ? null : p))}>
@@ -233,7 +235,7 @@ export default function Reforma({ itens, inicial }: { itens: Item[]; inicial?: M
             {pedido.qr && <img src={pedido.qr} alt="QR Code do Pix" width={220} height={220} className="qr" />}
             <div className="copia"><input readOnly value={pedido.pix_copia_cola} aria-label="Pix copia e cola" onFocus={(e) => e.target.select()} /><button type="button" onClick={copiar}>{copiado ? 'Copiado' : 'Copiar'}</button></div>
             <p className="dica">No app do banco: Pix, Pix copia e cola, cole e confirme.</p>
-            {pedido.modo === 'chave' && pedido.txid && <p className="dica">Código do pedido: <strong className="codigo">{pedido.txid}</strong>. Assim que o Pix cair, a portaria confirma e o visual vai pra janela (pode levar alguns minutos). Pode fechar esta tela.</p>}
+            {pedido.modo === 'chave' && pedido.txid && <p className="dica">Código do pedido: <strong className="codigo">{pedido.txid}</strong>. Assim que o Pix cair, a portaria confirma e o visual vai pra janela (pode levar alguns minutos). Guarde esse código: ele serve pra pedir devolução em até 7 dias. Pode fechar esta tela.</p>}
             <p className="esperando" role="status"><i className="radar" aria-hidden /> Esperando o pagamento…</p>
             {pedido.modo === 'teste' && <button className="secundario teste" onClick={() => fetch('/api/pix/simular', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: pedido.id }) })}>Simular pagamento (modo teste)</button>}
             <button className="fechar" onClick={() => dialog.current?.close()}>Fechar</button>

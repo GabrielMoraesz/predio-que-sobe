@@ -33,6 +33,9 @@ export default function AdminCenso() {
   const [handle, setHandle] = useState('');
   type Ped = { id: string; txid: string; handle: string; valor_centavos: number; itens: string[]; criado_em: string };
   const [pendentes, setPendentes] = useState<Ped[] | null>(null);
+  type Dev = { txid: string; handle: string; valor_centavos: number; itens: string[]; pago_em: string; pedido_em: string; motivo: string | null };
+  const [devs, setDevs] = useState<Dev[] | null>(null);
+  const [txManual, setTxManual] = useState('');
 
   async function ler(files: FileList | null) {
     setMsg(''); if (!files?.length) return;
@@ -79,6 +82,14 @@ export default function AdminCenso() {
     const j = await post('/api/admin/censo', { acao: 'confirmar', txid: p.txid });
     if (j) { setPendentes((l) => (l || []).filter((x) => x.id !== p.id)); setMsg(`Pix ${p.txid} confirmado. O visual do @${p.handle} já está na janela.`); }
   }
+  async function verDevs() {
+    const j = await post('/api/admin/censo', { acao: 'reembolsos' });
+    if (j) { setDevs(j); if (!j.length) setMsg('Ninguém pediu devolução.'); }
+  }
+  async function devolver(txid: string) {
+    const j = await post('/api/admin/censo', { acao: 'devolver', txid });
+    if (j) { setDevs((l) => (l || []).filter((x) => x.txid !== txid)); setTxManual(''); setMsg(`Pedido ${txid} marcado como devolvido. O item saiu do boneco.`); }
+  }
   const brl = (c: number) => (c / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
   const hora = proximoCenso().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', hour: '2-digit', minute: '2-digit' });
@@ -105,6 +116,28 @@ export default function AdminCenso() {
             ))}
           </ul>
         )}
+      </section>
+
+      <section>
+        <h2>Devoluções</h2>
+        <ol className="passos">
+          <li>No app do Itaú, abra o extrato e toque no Pix que a pessoa pagou (mesmo valor e dia; o código do pedido aparece na descrição quando o banco mostra).</li>
+          <li>Toque em Devolver Pix e devolva o valor inteiro. O dinheiro volta pra mesma conta, sem precisar pedir chave.</li>
+          <li>Volte aqui e toque em Já devolvi. O item sai do boneco.</li>
+        </ol>
+        <button className="secundario" disabled={!senha || ocupado} onClick={verDevs}>Ver pedidos de devolução</button>
+        {devs && devs.length > 0 && (
+          <ul className="pendentes">
+            {devs.map((d) => (
+              <li key={d.txid}>
+                <span><strong>{brl(d.valor_centavos)}</strong> · @{d.handle}<br /><small>Código {d.txid} · pago {new Date(d.pago_em).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}{d.motivo ? ` · "${d.motivo}"` : ''}</small></span>
+                <button className="primario" disabled={ocupado} onClick={() => devolver(d.txid)}>Já devolvi</button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p>Devolução pedida por DM (sem passar pelo site)? Devolva no app e marque pelo código:</p>
+        <div className="acoes"><input className="entrada" value={txManual} onChange={(e) => setTxManual(e.target.value.toUpperCase())} placeholder="PQS…" aria-label="Código do pedido devolvido" /><button className="secundario" disabled={!senha || !txManual || ocupado} onClick={() => devolver(txManual.trim())}>Marcar devolvido</button></div>
       </section>
 
       <section>

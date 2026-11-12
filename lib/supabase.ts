@@ -37,6 +37,6 @@ export async function catalogo(): Promise<Item[]> {
 
 // Erros do banco viram códigos curtos que a interface sabe explicar.
 export function codigoErro(msg: string) {
-  for (const c of ['espere', 'nao_encontrado', 'itens_invalidos', 'valor_divergente', 'proibido', 'handle_invalido', 'sem_consentimento', 'pedido_nao_encontrado']) if (msg.includes(c)) return c;
+  for (const c of ['nao_pago', 'prazo', 'espere', 'nao_encontrado', 'itens_invalidos', 'valor_divergente', 'proibido', 'handle_invalido', 'sem_consentimento', 'pedido_nao_encontrado']) if (msg.includes(c)) return c;
   return 'falha';
 }

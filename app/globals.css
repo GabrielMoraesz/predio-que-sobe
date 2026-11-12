@@ -320,3 +320,14 @@ button:disabled { opacity: .6; cursor: progress; }
 .reforma { overflow-x: clip; }
 .pix.escuro .secundario { color: #EEF0FA; border-color: #47508F; }
 .lista-itens .valor.txt { font-family: inherit; font-weight: 800; color: var(--r-suave); font-size: .9rem; }
+.texto-pagina { max-width: 680px; margin: 1.5rem auto 0; }
+.texto-pagina h1 { font-size: clamp(2rem, 7vw, 3rem); font-weight: 900; font-stretch: 116%; margin: 0 0 .8rem; }
+.texto-pagina h2 { font-size: 1.15rem; margin: 1.6rem 0 .3rem; }
+.texto-pagina p { color: var(--r-suave); line-height: 1.6; }
+.reembolso-form { display: grid; gap: 6px; margin: 1.2rem 0; }
+.reembolso-form .rotulo { color: var(--r-suave); margin-top: 6px; }
+.reembolso-form .campo.escuro { min-width: 0; }
+.reembolso-form .area { font: inherit; padding: 12px; border-radius: 12px; border: 1px solid var(--r-borda); background: #10142B; color: var(--r-texto); resize: vertical; }
+.reembolso-form .pagar { margin-top: 10px; }
+.reembolso-form .erro { color: #FF8A7A; }
+.nota-pagina { font-size: .9rem; }
