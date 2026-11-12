@@ -189,7 +189,7 @@ export default function Reforma({ itens, inicial }: { itens: Item[]; inicial?: M
                   <li key={i.id}>
                     <button type="button" aria-pressed={usando} onClick={() => provar(aba, i.id)} className={'item r-' + (i.raridade || 'comum')}>
                       <span className="info"><span className="nome">{i.nome}</span>{i.desc && <span className="desc">{i.desc}</span>}<span className="rar" style={{ color: r.cor }}>● {r.nome}</span></span>
-                      <span className="valor">{tem ? (usando ? 'Usando' : 'Seu') : reais(i.preco)}</span>
+                      <span className={'valor' + (tem ? ' txt' : '')}>{tem ? (usando ? 'Usando' : 'Já é seu') : reais(i.preco)}</span>
                     </button>
                   </li>
                 );

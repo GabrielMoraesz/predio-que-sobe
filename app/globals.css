@@ -319,3 +319,4 @@ button:disabled { opacity: .6; cursor: progress; }
 .quem .campo.escuro { min-width: 0; }
 .reforma { overflow-x: clip; }
 .pix.escuro .secundario { color: #EEF0FA; border-color: #47508F; }
+.lista-itens .valor.txt { font-family: inherit; font-weight: 800; color: var(--r-suave); font-size: .9rem; }
