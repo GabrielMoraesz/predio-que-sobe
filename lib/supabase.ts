@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import type { Estatisticas, Morador } from './config';
+import { normalizarHandle, type Estatisticas, type Morador } from './config';
 import type { Item } from './visual';
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -18,7 +18,7 @@ export async function estatisticas(): Promise<Estatisticas> {
 }
 
 export async function buscarMorador(handle: string): Promise<Morador | null> {
-  const { data, error } = await supabase.rpc('buscar_morador', { p_handle: handle });
+  const { data, error } = await supabase.rpc('buscar_morador', { p_handle: normalizarHandle((() => { try { return decodeURIComponent(handle); } catch { return handle; } })()) });
   if (error || !data) return null;
   return data as Morador;
 }

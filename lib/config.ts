@@ -38,7 +38,7 @@ export function proximoCenso(agora = new Date()) {
 
 export const HANDLE_RE = /^(?!\.)(?!.*\.\.)[a-z0-9._]{1,30}(?<!\.)$/;
 export function normalizarHandle(raw: string) {
-  return raw.trim().toLowerCase().replace(/^@+/, '');
+  return raw.trim().toLowerCase().replace(/^@+/, '').replace(/-/g, '_'); // @ do YouTube com hífen vira underline
 }
 export function rotulo(m: Pick<Morador, 'handle' | 'nome' | 'staff'>) {
   return m.staff && m.nome ? m.nome : '@' + m.handle;
