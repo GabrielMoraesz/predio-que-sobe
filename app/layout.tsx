@@ -4,8 +4,8 @@ import { PREDIO } from '@/lib/config';
 
 export const metadata: Metadata = {
   title: PREDIO.nome,
-  description: 'Cada seguidor ganha um apartamento. O prédio sobe um andar a cada 8 moradores.',
-  openGraph: { title: PREDIO.nome, description: 'Pegue seu apartamento com o seu @ na janela.', locale: 'pt_BR', type: 'website' },
+  description: 'Cada seguidor do @paulimsortudo ganha um apartamento. Todo dia às 12h o prédio recebe os novos moradores.',
+  openGraph: { title: PREDIO.nome, description: 'Siga o @paulimsortudo e ganhe um apartamento com o seu @ na janela.', locale: 'pt_BR', type: 'website' },
 };
 export const viewport: Viewport = { themeColor: '#1B2140', width: 'device-width', initialScale: 1, viewportFit: 'cover' };
 
