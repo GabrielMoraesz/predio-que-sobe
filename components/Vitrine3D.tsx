@@ -7,7 +7,7 @@ import { animar, corpoInteiro, type Corpo } from '@/lib/boneco3d';
 import { LUZ_COR, visualDe, type Visual } from '@/lib/visual';
 
 // Vitrine: o boneco de corpo inteiro girando num pedestal, na frente da janela dele. Arraste pra girar.
-export default function Vitrine3D({ handle, visual }: { handle: string; visual?: Partial<Visual> | null }) {
+export default function Vitrine3D({ handle, visual, perto = false }: { handle: string; visual?: Partial<Visual> | null; perto?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const trocar = useRef<((v?: Partial<Visual> | null) => void) | null>(null);
   const chave = JSON.stringify(visual || {});
@@ -21,7 +21,7 @@ export default function Vitrine3D({ handle, visual }: { handle: string; visual?:
     el.appendChild(renderer.domElement);
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(34, el.clientWidth / el.clientHeight, 0.1, 100);
-    camera.position.set(2.6, 2.1, 5.6);
+    if (perto) camera.position.set(1.5, 2.0, 4.3); else camera.position.set(2.6, 2.1, 5.6);
     scene.add(new THREE.HemisphereLight('#FFE6CC', '#5A5F86', 1.8), new THREE.AmbientLight('#fff', 0.4));
     const sol = new THREE.DirectionalLight('#FFD2A8', 2); sol.position.set(-3, 5, 4); scene.add(sol);
     const std = (c: THREE.ColorRepresentation, extra: THREE.MeshStandardMaterialParameters = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.7, ...extra });
@@ -57,7 +57,7 @@ export default function Vitrine3D({ handle, visual }: { handle: string; visual?:
     trocar.current(JSON.parse(chave));
 
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.target.set(0, 1.15, 0); controls.enablePan = false; controls.enableZoom = false; controls.enableDamping = true;
+    controls.target.set(0, perto ? 1.35 : 1.15, 0); controls.enablePan = false; controls.enableZoom = false; controls.enableDamping = true;
     controls.minPolarAngle = Math.PI * 0.3; controls.maxPolarAngle = Math.PI * 0.52; controls.minAzimuthAngle = -1.1; controls.maxAzimuthAngle = 1.1;
     let raf = 0;
     const loop = (now: number) => {

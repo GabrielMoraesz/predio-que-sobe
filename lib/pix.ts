@@ -1,13 +1,33 @@
 // Cobrança Pix no padrão da API Pix do Banco Central (o Itaú implementa esse padrão).
 // PIX_MODO=teste gera cobranças de mentira pra testar a loja sem dinheiro de verdade.
+// PIX_MODO=chave gera o Pix copia e cola direto da chave (sem API do banco); a portaria confirma o pagamento no admin.
 import https from 'node:https';
 import { randomBytes } from 'node:crypto';
 
-export const PIX_MODO = (process.env.PIX_MODO || 'teste') as 'teste' | 'itau';
-const EXPIRA_SEG = 60 * 60;
+export const PIX_MODO = (process.env.PIX_MODO || 'teste') as 'teste' | 'itau' | 'chave';
+const EXPIRA_SEG = PIX_MODO === 'chave' ? 48 * 60 * 60 : 60 * 60;
 
 export function novoTxid() {
+  if (PIX_MODO === 'chave') { // código curto pra conferir no extrato: PQS + 7 letras/números sem ambiguidade
+    const A = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; const b = randomBytes(7);
+    return 'PQS' + Array.from(b, (x) => A[x % A.length]).join('');
+  }
   return randomBytes(16).toString('hex'); // 32 caracteres alfanuméricos (BACEN: 26 a 35)
+}
+
+// Pix copia e cola (BR Code estático do Banco Central) com valor e identificador do pedido.
+const campo = (id: string, v: string) => id + String(v.length).padStart(2, '0') + v;
+function crc16(t: string) {
+  let c = 0xffff;
+  for (let i = 0; i < t.length; i++) { c ^= t.charCodeAt(i) << 8; for (let j = 0; j < 8; j++) c = c & 0x8000 ? ((c << 1) ^ 0x1021) & 0xffff : (c << 1) & 0xffff; }
+  return c.toString(16).toUpperCase().padStart(4, '0');
+}
+const semAcento = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9 ]/g, '').toUpperCase();
+export function brCode(chave: string, centavos: number, txid: string, nome = 'PREDIO QUE SOBE', cidade = 'SAO PAULO') {
+  const corpo = campo('00', '01') + campo('26', campo('00', 'br.gov.bcb.pix') + campo('01', chave)) + campo('52', '0000') + campo('53', '986')
+    + campo('54', (centavos / 100).toFixed(2)) + campo('58', 'BR') + campo('59', semAcento(nome).slice(0, 25)) + campo('60', semAcento(cidade).slice(0, 15))
+    + campo('62', campo('05', txid)) + '6304';
+  return corpo + crc16(corpo);
 }
 
 type Cobranca = { txid: string; copiaECola: string; expiraEm: Date };
@@ -49,6 +69,11 @@ const baseItau = () => (process.env.ITAU_PIX_URL || 'https://secure.api.itau/pix
 
 export async function criarCobranca(txid: string, centavos: number, descricao: string): Promise<Cobranca> {
   const expiraEm = new Date(Date.now() + EXPIRA_SEG * 1000);
+  if (PIX_MODO === 'chave') {
+    const chave = process.env.PIX_CHAVE;
+    if (!chave) throw new Error('PIX_CHAVE não configurada');
+    return { txid, expiraEm, copiaECola: brCode(chave, centavos, txid, process.env.PIX_NOME, process.env.PIX_CIDADE) };
+  }
   if (PIX_MODO === 'teste') {
     return { txid, expiraEm, copiaECola: `00020101MODO-TESTE-PREDIO-QUE-SOBE${txid}5204000053039865406${(centavos / 100).toFixed(2)}5802BR` };
   }
@@ -66,7 +91,7 @@ export async function criarCobranca(txid: string, centavos: number, descricao: s
 
 // Pergunta ao banco se a cobrança foi paga. Nunca confiamos só no aviso recebido.
 export async function cobrancaPaga(txid: string): Promise<boolean> {
-  if (PIX_MODO === 'teste') return false; // no modo teste, só o botão "simular pagamento" confirma
+  if (PIX_MODO !== 'itau') return false; // teste: botão "simular"; chave: a portaria confirma no admin
   const token = await tokenItau();
   const r = await req('GET', `${baseItau()}/cob/${txid}`, { authorization: `Bearer ${token}`, 'x-itau-apikey': process.env.ITAU_CLIENT_ID || '' });
   return r.status === 200 && r.json.status === 'CONCLUIDA';

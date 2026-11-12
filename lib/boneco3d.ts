@@ -10,20 +10,26 @@ export type Peca = { k: string; x: number; y: number; z: number; cor?: string; r
 export const PIVOS: Record<Membro, [number, number, number]> = { pernaE: [-0.25, 0.95, 0], pernaD: [0.25, 0.95, 0], bracoE: [-0.74, 1.88, 0], bracoD: [0.74, 1.88, 0] };
 
 function rostoTextura(feminino = false) {
-  const c = document.createElement('canvas'); c.width = 512; c.height = 256;
+  // rosto quadrado (frente da cabeça arredondada): olhão com brilho, bochecha rosada e sorriso com dentinho
+  const c = document.createElement('canvas'); c.width = 512; c.height = 512;
   const g = c.getContext('2d')!;
-  g.fillStyle = '#fff'; g.fillRect(0, 0, 512, 256);
-  g.fillStyle = '#1B2140';
-  for (const x of [228, 284]) { g.beginPath(); g.ellipse(x, 102, 10, 17, 0, 0, Math.PI * 2); g.fill(); }
-  g.fillStyle = '#fff'; for (const x of [231, 287]) { g.beginPath(); g.arc(x, 95, 4, 0, Math.PI * 2); g.fill(); }
-  if (feminino) { // cílios
-    g.strokeStyle = '#1B2140'; g.lineWidth = 5; g.lineCap = 'round';
-    for (const [x, s] of [[228, -1], [284, 1]] as const) for (const d of [0, 8]) { g.beginPath(); g.moveTo(x + s * (6 + d), 88 - d * 0.4); g.lineTo(x + s * (16 + d), 78 - d * 0.6); g.stroke(); }
+  g.fillStyle = '#fff'; g.fillRect(0, 0, 512, 512);
+  const tinta = '#1B1D2B';
+  for (const x of [186, 326]) {
+    g.fillStyle = tinta; g.beginPath(); g.ellipse(x, 236, 30, 44, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(x - 9, 218, 12, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.arc(x + 10, 258, 5, 0, Math.PI * 2); g.fill();
   }
-  g.strokeStyle = '#1B2140'; g.lineWidth = 9; g.lineCap = 'round';
-  g.beginPath(); g.arc(256, 140, 34, Math.PI * 0.18, Math.PI * 0.82); g.stroke();
-  g.fillStyle = 'rgba(226,85,122,.18)'; for (const x of [206, 306]) { g.beginPath(); g.ellipse(x, 140, 16, 9, 0, 0, Math.PI * 2); g.fill(); }
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+  if (feminino) { // cílios
+    g.strokeStyle = tinta; g.lineWidth = 9; g.lineCap = 'round';
+    for (const [x, s] of [[186, -1], [326, 1]] as const) for (const d of [0, 14]) { g.beginPath(); g.moveTo(x + s * (16 + d), 198 + d * 0.3); g.lineTo(x + s * (34 + d), 176 + d * 0.5); g.stroke(); }
+  }
+  g.fillStyle = 'rgba(255,110,140,.32)'; for (const x of [120, 392]) { g.beginPath(); g.ellipse(x, 316, 34, 20, 0, 0, Math.PI * 2); g.fill(); }
+  // boca aberta em D com um dentinho
+  g.fillStyle = '#5B1F2E'; g.beginPath(); g.moveTo(206, 318); g.quadraticCurveTo(256, 322, 306, 318); g.quadraticCurveTo(300, 392, 256, 392); g.quadraticCurveTo(212, 392, 206, 318); g.fill();
+  g.fillStyle = '#FF8FA3'; g.beginPath(); g.ellipse(256, 376, 26, 12, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#fff'; g.fillRect(238, 319, 20, 22); g.fillRect(260, 319, 16, 18);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
 }
 
 // Rosto do síndico: caveira de olhão brilhante, nariz de coração e sorriso de dentes.
@@ -61,8 +67,8 @@ export function registro(): Reg {
   const face = std('#ffffff', { map: rostoTextura() });
   const faceF = std('#ffffff', { map: rostoTextura(true) });
   REG = {
-    cabeca: { geo: new THREE.CylinderGeometry(0.33, 0.33, 0.62, 40, 1, false, -Math.PI, Math.PI * 2), mat: [face, tingivel(), tingivel()] },
-    cabecaF: { geo: new THREE.CylinderGeometry(0.33, 0.33, 0.62, 40, 1, false, -Math.PI, Math.PI * 2), mat: [faceF, tingivel(), tingivel()] },
+    cabeca: { geo: rb(0.72, 0.64, 0.66, 0.17), mat: (() => { const o = tingivel(); return [o, o, o, o, face, o]; })() },
+    cabecaF: { geo: rb(0.72, 0.64, 0.66, 0.17), mat: (() => { const o = tingivel(); return [o, o, o, o, faceF, o]; })() },
     tronco: { geo: rb(1.0, 0.95, 0.5, 0.1), mat: tingivel() },
     troncoF: { geo: (() => { const t = rb(1.0, 0.95, 0.5, 0.12); const p = t.attributes.position; for (let i = 0; i < p.count; i++) { const y = p.getY(i); p.setX(i, p.getX(i) * (y > 0 ? 0.9 : 1.02 - (0.08 * y) / 0.475)); } t.computeVertexNormals(); return t; })(), mat: tingivel() },
     manga: { geo: rb(0.46, 0.56, 0.46), mat: tingivel() },

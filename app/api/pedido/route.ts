@@ -26,5 +26,5 @@ export async function POST(req: Request) {
     p_txid: txid, p_copia_cola: cob.copiaECola, p_provedor: PIX_MODO, p_expira_em: cob.expiraEm.toISOString(),
   });
   if (ped.error) { console.error('pedido', ped.error.message); return erro(codigoErro(ped.error.message), 400); }
-  return NextResponse.json({ id: ped.data.id, valor_centavos: valor, pix_copia_cola: cob.copiaECola, expira_em: cob.expiraEm, modo: PIX_MODO });
+  return NextResponse.json({ id: ped.data.id, txid: PIX_MODO === "chave" ? txid : undefined, valor_centavos: valor, pix_copia_cola: cob.copiaECola, expira_em: cob.expiraEm, modo: PIX_MODO });
 }

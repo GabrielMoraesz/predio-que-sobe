@@ -54,7 +54,7 @@ export default function MoradorClient({ m, viz, ocupados }: { m: Morador; viz: M
           <button type="button" className="secundario" onClick={compartilhar}>Chamar um vizinho</button>
         </div>
         <button type="button" className="descer" onClick={() => alternarRua(true)}>Descer pra rua e passear</button>
-        <Link className="editar" href={`/m/${m.handle}/editar`}>{m.staff ? 'Ver o boneco do síndico' : 'Personalizar meu boneco'}</Link>
+        <Link className="editar" href={`/loja?u=${m.handle}`}>{m.staff ? "Ver a loja" : "Reformar meu boneco"}</Link>
         {aviso && <p className="aviso" role="status">{aviso}</p>}
 
 

@@ -31,6 +31,8 @@ export default function AdminCenso() {
   const [msg, setMsg] = useState('');
   const [ocupado, setOcupado] = useState(false);
   const [handle, setHandle] = useState('');
+  type Ped = { id: string; txid: string; handle: string; valor_centavos: number; itens: string[]; criado_em: string };
+  const [pendentes, setPendentes] = useState<Ped[] | null>(null);
 
   async function ler(files: FileList | null) {
     setMsg(''); if (!files?.length) return;
@@ -69,6 +71,16 @@ export default function AdminCenso() {
     if (j) setMsg(j.ok ? (acao === 'esconder' ? 'Janela apagada. Esse @ não aparece mais.' : 'Janela acesa de novo.') : 'Não achei esse @ no prédio.');
   }
 
+  async function verPedidos() {
+    const j = await post('/api/admin/censo', { acao: 'pedidos' });
+    if (j) { setPendentes(j); if (!j.length) setMsg('Nenhum Pix esperando confirmação.'); }
+  }
+  async function confirmar(p: Ped) {
+    const j = await post('/api/admin/censo', { acao: 'confirmar', txid: p.txid });
+    if (j) { setPendentes((l) => (l || []).filter((x) => x.id !== p.id)); setMsg(`Pix ${p.txid} confirmado. O visual do @${p.handle} já está na janela.`); }
+  }
+  const brl = (c: number) => (c / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
   const hora = proximoCenso().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', hour: '2-digit', minute: '2-digit' });
 
   return (
@@ -78,6 +90,22 @@ export default function AdminCenso() {
 
       <label className="rotulo" htmlFor="senha">Senha da portaria</label>
       <input id="senha" type="password" className="entrada" value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="current-password" />
+
+      <section>
+        <h2>Pix pra confirmar</h2>
+        <p>Abra o extrato do Pix no app do banco. Quando achar um Pix com o mesmo valor (e o código do pedido, se o banco mostrar), confirme aqui.</p>
+        <button className="secundario" disabled={!senha || ocupado} onClick={verPedidos}>Ver pedidos esperando</button>
+        {pendentes && pendentes.length > 0 && (
+          <ul className="pendentes">
+            {pendentes.map((p) => (
+              <li key={p.id}>
+                <span><strong>{brl(p.valor_centavos)}</strong> · @{p.handle}<br /><small>Código {p.txid} · {new Date(p.criado_em).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</small></span>
+                <button className="primario" disabled={ocupado} onClick={() => confirmar(p)}>Confirmar Pix</button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section>
         <h2>1. Enviar os seguidores</h2>

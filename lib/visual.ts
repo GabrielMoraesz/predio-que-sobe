@@ -4,7 +4,12 @@ export type Visual = {
   cabeca?: string; rosto?: string; roupa?: string; janela?: string; luz?: string;
 };
 export type Slot = 'cabeca' | 'rosto' | 'roupa' | 'janela' | 'luz';
-export type Item = { id: string; nome: string; slot: Slot; preco: number; raro: boolean };
+export type Raridade = 'comum' | 'raro' | 'epico' | 'lendario';
+export type Item = { id: string; nome: string; slot: Slot; preco: number; raro: boolean; raridade?: Raridade; desc?: string | null };
+export const RARIDADES: Record<Raridade, { nome: string; cor: string; ordem: number }> = {
+  comum: { nome: 'Comum', cor: '#9AA3C7', ordem: 0 }, raro: { nome: 'Raro', cor: '#4FC3FF', ordem: 1 },
+  epico: { nome: 'Épico', cor: '#C77DFF', ordem: 2 }, lendario: { nome: 'Lendário', cor: '#F7C531', ordem: 3 },
+};
 
 export const PELES = ['#F6D3B3', '#E9B48A', '#C98B5E', '#9C6440', '#6E4429', '#F2C48D'];
 export const GENEROS = ['Masculino', 'Feminino'];
