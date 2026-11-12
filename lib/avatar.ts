@@ -1,3 +1,4 @@
+import { SINDICO } from './config';
 import { CAMISAS, CORES_CABELO, PELES, ROUPA_COR, type Visual, visualDe } from './visual';
 
 const INK = '#1B2140';
@@ -33,11 +34,27 @@ function busto(v: Visual) {
   if (v.cabeca === 'coroa') cabeca = `<path d="M52 40 l6 -22 l12 15 l10 -21 l10 21 l12 -15 l6 22z" fill="#F7C531" ${s}/><circle cx="80" cy="31" r="4" fill="#E2557A"/>`;
 
   return `${tras}${roupa}<rect x="46" y="38" width="68" height="70" rx="16" fill="${pele}" ${s}/>${frente}
-  <ellipse cx="68" cy="66" rx="4" ry="6" fill="${INK}"/><ellipse cx="92" cy="66" rx="4" ry="6" fill="${INK}"/>
+  <ellipse cx="68" cy="66" rx="4" ry="6" fill="${INK}"/><ellipse cx="92" cy="66" rx="4" ry="6" fill="${INK}"/>${v.genero === 1 ? `<path d="M64 59 l-5 -5 M67 58 l-3 -6 M96 59 l5 -5 M93 58 l3 -6" stroke="${INK}" stroke-width="2.5" stroke-linecap="round"/>` : ''}
   <path d="M66 84 q14 12 28 0" fill="none" stroke="${INK}" stroke-width="4" stroke-linecap="round"/>${rosto}${cabeca}`;
 }
 
+// Síndico: caveira de moletom azul-marinho com trevo.
+function sindico() {
+  const s = `stroke="${INK}" stroke-width="4" stroke-linejoin="round"`;
+  return `<rect x="22" y="112" width="20" height="56" rx="4" fill="#16224F" ${s}/><rect x="118" y="112" width="20" height="56" rx="4" fill="#16224F" ${s}/>
+  <rect x="40" y="108" width="80" height="66" rx="6" fill="#16224F" ${s}/><rect x="52" y="150" width="56" height="16" rx="3" fill="#101A3D"/>
+  <path d="M72 112 v22 M88 112 v22" stroke="#F4F2EC" stroke-width="3.5" stroke-linecap="round"/>
+  <g fill="#2FA35A"><circle cx="100" cy="124" r="4.5"/><circle cx="108" cy="124" r="4.5"/><circle cx="100" cy="132" r="4.5"/><circle cx="108" cy="132" r="4.5"/></g>
+  <rect x="38" y="28" width="84" height="80" rx="20" fill="#F4F2EC" ${s}/>
+  <ellipse cx="62" cy="62" rx="14" ry="16" fill="${INK}"/><ellipse cx="98" cy="62" rx="14" ry="16" fill="${INK}"/>
+  <circle cx="57" cy="56" r="4.5" fill="#fff"/><circle cx="93" cy="56" r="4.5" fill="#fff"/><circle cx="67" cy="69" r="2" fill="#fff"/><circle cx="103" cy="69" r="2" fill="#fff"/>
+  <path d="M80 87 c-7 -5 -6 -11 -2 -10 c1 0 2 1 2 2 c0 -1 1 -2 2 -2 c4 -1 5 5 -2 10z" fill="${INK}"/>
+  <path d="M60 92 q20 16 40 0 q-20 7 -40 0z" fill="#fff" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M70 95 v6 M80 96 v7 M90 95 v6" stroke="${INK}" stroke-width="2"/>`;
+}
+
 export function avatarSvg(handle: string, size = 160, salvo?: Partial<Visual> | null) {
+  if (handle === SINDICO) return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="${size}" height="${size}">${sindico()}</svg>`;
   const v = visualDe(handle, salvo);
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="${size}" height="${size}">${busto(v)}</svg>`;
 }

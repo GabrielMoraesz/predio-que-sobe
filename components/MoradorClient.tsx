@@ -11,7 +11,7 @@ const RELACAO: Record<string, string> = {
   porta_esquerda: 'Porta da esquerda', porta_direita: 'Porta da direita', de_cima: 'Andar de cima', de_baixo: 'Andar de baixo',
 };
 
-export default function MoradorClient({ m, viz, ocupados, codigo, novo }: { m: Morador; viz: Morador[]; ocupados: number; codigo?: string; novo?: boolean }) {
+export default function MoradorClient({ m, viz, ocupados }: { m: Morador; viz: Morador[]; ocupados: number }) {
   const [andar, setAndar] = useState(0);
   const [aviso, setAviso] = useState('');
   const [rua, setRua] = useState(false);
@@ -24,7 +24,7 @@ export default function MoradorClient({ m, viz, ocupados, codigo, novo }: { m: M
 
   async function compartilhar() {
     const url = `${location.origin}/m/${m.handle}`;
-    const texto = `Moro no apto ${m.apto} do Prédio que Sobe. Pega o seu e vira meu vizinho:`;
+    const texto = `Moro no apto ${m.apto} do Prédio que Sobe. Siga o @${PREDIO.instagram} e vire meu vizinho:`;
     try {
       const blob = await (await fetch(storyUrl)).blob();
       const file = new File([blob], `apto-${m.apto}.png`, { type: 'image/png' });
@@ -48,25 +48,15 @@ export default function MoradorClient({ m, viz, ocupados, codigo, novo }: { m: M
       )}
       <Elevador andar={andar} subindo={andar < m.andar} />
       <section className="painel morador" aria-label={`Apartamento de ${rotulo(m)}`} hidden={rua}>
-        {novo && <p className="boasvindas">Bem-vindo ao prédio. Sua janela já está acesa.</p>}
         <Carteirinha m={m} />
         <div className="acoes">
           <a className="primario" href={storyUrl} download={`apto-${m.apto}.png`}>Baixar pro story</a>
           <button type="button" className="secundario" onClick={compartilhar}>Chamar um vizinho</button>
         </div>
         <button type="button" className="descer" onClick={() => alternarRua(true)}>Descer pra rua e passear</button>
-        <Link className="editar" href={`/m/${m.handle}/editar`}>Personalizar meu boneco</Link>
+        <Link className="editar" href={`/m/${m.handle}/editar`}>{m.staff ? 'Ver o boneco do síndico' : 'Personalizar meu boneco'}</Link>
         {aviso && <p className="aviso" role="status">{aviso}</p>}
 
-        {!m.verificado && !m.staff && (
-          <div className="confirmar">
-            {codigo ? (
-              <p>Pra confirmar que esse @ é seu, comente <strong className="codigo">{codigo}</strong> no post fixado do <a href={`https://instagram.com/${PREDIO.instagram}`} target="_blank" rel="noreferrer">@{PREDIO.instagram}</a>. Janelas confirmadas ganham o selo de morador oficial.</p>
-            ) : (
-              <p>Esse apartamento ainda não foi confirmado. Se o @ é seu, toque em <Link href="/">Pegar meu apartamento</Link> com ele pra ver seu código.</p>
-            )}
-          </div>
-        )}
 
         <h2>Seus vizinhos</h2>
         {viz.length ? (

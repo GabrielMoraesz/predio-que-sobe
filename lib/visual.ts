@@ -1,12 +1,14 @@
-// Aparência do boneco: base grátis (pele, cabelo, cor do cabelo, camisa) + itens da loja por slot.
+// Aparência do boneco: pele e gênero são grátis; cabelo, camisa e itens da loja entram no Pix.
 export type Visual = {
-  pele: number; cabelo: number; corCabelo: number; camisa: number;
+  pele: number; genero: number; cabelo: number; corCabelo: number; camisa: number;
   cabeca?: string; rosto?: string; roupa?: string; janela?: string; luz?: string;
 };
 export type Slot = 'cabeca' | 'rosto' | 'roupa' | 'janela' | 'luz';
 export type Item = { id: string; nome: string; slot: Slot; preco: number; raro: boolean };
 
 export const PELES = ['#F6D3B3', '#E9B48A', '#C98B5E', '#9C6440', '#6E4429', '#F2C48D'];
+export const GENEROS = ['Masculino', 'Feminino'];
+export const GRATIS = ['pele', 'genero'] as const;
 export const CABELOS = ['Careca', 'Curto', 'Longo', 'Coque', 'Black power'];
 export const CORES_CABELO = ['#1D1611', '#4A2C1A', '#8A5A2B', '#D9A441', '#B23A2A', '#8E8E99'];
 export const CAMISAS = ['#2B63B0', '#B5533C', '#F7C531', '#2F8F6B', '#7A4FB8', '#E2557A', '#1E2A4A', '#F08A24'];
@@ -24,7 +26,7 @@ export function hashStr(s: string) {
 
 export function visualPadrao(handle: string): Visual {
   const h = hashStr(handle || 'x');
-  return { pele: h % 6, cabelo: (h >>> 8) % 5, corCabelo: (h >>> 12) % 6, camisa: (h >>> 16) % 8 };
+  return { pele: h % 6, genero: (h >>> 20) % 2, cabelo: (h >>> 8) % 5, corCabelo: (h >>> 12) % 6, camisa: (h >>> 16) % 8 };
 }
 
 export function visualDe(handle: string, salvo?: Partial<Visual> | null): Visual {

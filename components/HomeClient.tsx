@@ -1,55 +1,46 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Building from './Building';
 import Elevador from './Elevador';
-import { salvarChave } from '@/lib/chave';
-import { HANDLE_RE, normalizarHandle, PREDIO, type Estatisticas } from '@/lib/config';
+import { HANDLE_RE, normalizarHandle, PREDIO, proximoCenso, type Estatisticas } from '@/lib/config';
 
-const ERROS: Record<string, string> = {
-  handle_invalido: 'Esse @ não parece válido. Use só letras, números, ponto e underline.',
-  sem_consentimento: 'Marque a caixinha pra liberar sua janela.',
-  nao_encontrado: 'Ninguém mora com esse @ ainda. Toque em "Pegar meu apartamento".',
-  falha: 'Não deu pra falar com a portaria agora. Tenta de novo em alguns segundos.',
-};
+function useContagem() {
+  const [falta, setFalta] = useState<string | null>(null);
+  useEffect(() => {
+    const tick = () => {
+      const s = Math.max(0, Math.floor((proximoCenso().getTime() - Date.now()) / 1000));
+      const p = (n: number) => String(n).padStart(2, '0');
+      setFalta(`${p(Math.floor(s / 3600))}:${p(Math.floor((s % 3600) / 60))}:${p(s % 60)}`);
+    };
+    tick(); const t = setInterval(tick, 1000);
+    return () => clearInterval(t);
+  }, []);
+  return falta;
+}
 
 export default function HomeClient({ stats }: { stats: Estatisticas }) {
   const router = useRouter();
   const [andar, setAndar] = useState(0);
   const [handle, setHandle] = useState('');
-  const [consent, setConsent] = useState(false);
   const [erro, setErro] = useState('');
-  const [enviando, setEnviando] = useState<'' | 'pegar' | 'achar'>('');
+  const [procurando, setProcurando] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const falta = useContagem();
   const andares = Math.max(1, Math.ceil(stats.ultimo_numero / PREDIO.aptosPorAndar));
+  const ig = PREDIO.instagram;
 
-  function validar() {
-    const h = normalizarHandle(handle);
-    if (!HANDLE_RE.test(h)) { setErro(ERROS.handle_invalido); inputRef.current?.focus(); return null; }
-    return h;
-  }
-
-  async function pegar(e: React.FormEvent) {
+  async function achar(e: React.FormEvent) {
     e.preventDefault(); setErro('');
-    const h = validar(); if (!h) return;
-    if (!consent) { setErro(ERROS.sem_consentimento); return; }
-    setEnviando('pegar');
+    const h = normalizarHandle(handle);
+    if (!HANDLE_RE.test(h)) { setErro('Esse @ não parece válido. Use só letras, números, ponto e underline.'); inputRef.current?.focus(); return; }
+    setProcurando(true);
     try {
-      const r = await fetch('/api/registrar', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ handle: h, consentiu: true }) });
-      const j = await r.json();
-      if (!r.ok) { setErro(ERROS[j.erro] || ERROS.falha); setEnviando(''); return; }
-      if (j.chave) salvarChave(j.handle, j.chave);
-      router.push(`/m/${j.handle}?c=${j.codigo}${j.novo ? '&novo=1' : ''}`);
-    } catch { setErro(ERROS.falha); setEnviando(''); }
-  }
-
-  async function achar() {
-    setErro(''); const h = validar(); if (!h) return;
-    setEnviando('achar');
-    const r = await fetch(`/api/morador/${h}`);
-    if (r.status === 404) { setErro(ERROS.nao_encontrado); setEnviando(''); return; }
-    router.push(`/m/${h}`);
+      const r = await fetch(`/api/morador/${h}`);
+      if (r.status === 404) { setErro(`Ainda não tem janela do @${h}. Se você já segue o @${ig}, ela acende no próximo censo, às 12h.`); setProcurando(false); return; }
+      router.push(`/m/${h}`);
+    } catch { setErro('Não deu pra falar com a portaria agora. Tente de novo em alguns segundos.'); setProcurando(false); }
   }
 
   return (
@@ -57,25 +48,34 @@ export default function HomeClient({ stats }: { stats: Estatisticas }) {
       <Building ocupados={stats.ultimo_numero} rotulos={stats.recentes} onAndar={setAndar} />
       <Elevador andar={andar} subindo={false} />
       <section className="painel" aria-labelledby="titulo">
-        <h1 id="titulo">Cada seguidor ganha um apartamento.</h1>
-        <p className="lead">O prédio sobe um andar a cada {PREDIO.aptosPorAndar} moradores. Quem chega antes fica com o número mais baixo, pra sempre.</p>
-        <form onSubmit={pegar} noValidate>
-          <label htmlFor="handle" className="rotulo">Seu @ do Instagram</label>
-          <div className="campo">
-            <span aria-hidden>@</span>
-            <input id="handle" ref={inputRef} value={handle} onChange={(e) => setHandle(e.target.value)} autoComplete="off" autoCapitalize="none" spellCheck={false} inputMode="email" placeholder="seu.arroba" maxLength={31} aria-describedby={erro ? 'erro' : undefined} aria-invalid={!!erro} />
+        <h1 id="titulo">Siga o @{ig} e ganhe um apartamento.</h1>
+        <p className="lead">Todo dia às 12h o síndico faz o censo: quem começou a seguir ganha uma janela com o próprio @. Quem chega antes fica com o número mais baixo, pra sempre.</p>
+
+        <div className="contagem" role="timer" aria-live="off">
+          <span className="rotulo-led">Próximo censo em</span>
+          <span className="lcd">{falta ?? '--:--:--'}</span>
+        </div>
+
+        <a className="primario seguir" href={`https://instagram.com/${ig}`} target="_blank" rel="noreferrer">Seguir @{ig}</a>
+
+        <form onSubmit={achar} noValidate className="achar">
+          <label htmlFor="handle" className="rotulo">Já segue? Ache sua janela</label>
+          <div className="campo-linha">
+            <div className="campo">
+              <span aria-hidden>@</span>
+              <input id="handle" ref={inputRef} value={handle} onChange={(e) => setHandle(e.target.value)} autoComplete="off" autoCapitalize="none" spellCheck={false} inputMode="email" placeholder="seu.arroba" maxLength={31} aria-describedby={erro ? 'erro' : undefined} aria-invalid={!!erro} />
+            </div>
+            <button type="submit" className="secundario" disabled={procurando}>{procurando ? 'Procurando…' : 'Achar meu apê'}</button>
           </div>
-          <label className="check">
-            <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
-            <span>Topo meu @ aparecer na janela do prédio e nos vídeos do @{PREDIO.instagram}.</span>
-          </label>
           {erro && <p id="erro" className="erro" role="alert">{erro}</p>}
-          <div className="acoes">
-            <button type="submit" className="primario" disabled={!!enviando}>{enviando === 'pegar' ? 'Separando a chave…' : 'Pegar meu apartamento'}</button>
-            <button type="button" className="secundario" onClick={achar} disabled={!!enviando}>{enviando === 'achar' ? 'Procurando…' : 'Achar meu apê'}</button>
-          </div>
         </form>
-        <p className="censo">{stats.moradores.toLocaleString('pt-BR')} moradores em {andares.toLocaleString('pt-BR')} {andares === 1 ? 'andar' : 'andares'}. O síndico mora no 101. <Link href="/loja">Ver a loja de acessórios</Link></p>
+
+        <p className="censo">
+          {stats.moradores.toLocaleString('pt-BR')} moradores em {andares.toLocaleString('pt-BR')} {andares === 1 ? 'andar' : 'andares'}
+          {stats.ultimo_censo ? `. No último censo chegaram ${stats.ultimo_censo.novos.toLocaleString('pt-BR')}.` : '.'}{' '}
+          Com o seu @ você compra acessórios pro seu boneco. <Link href="/loja">Ver a loja</Link>
+        </p>
+        <p className="optout">Não quer aparecer no prédio? Mande uma DM pro @{ig} que a portaria tira sua janela.</p>
       </section>
     </main>
   );

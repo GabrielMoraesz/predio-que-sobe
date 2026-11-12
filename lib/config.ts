@@ -1,7 +1,7 @@
 export const PREDIO = {
   nome: 'O Prédio que Sobe',
   edificio: 'Edifício Que Sobe',
-  instagram: process.env.NEXT_PUBLIC_INSTAGRAM || 'opredioquesobe',
+  instagram: process.env.NEXT_PUBLIC_INSTAGRAM || 'paulimsortudo',
   site: process.env.NEXT_PUBLIC_SITE_URL || 'predio-que-sobe.vercel.app',
   aptosPorAndar: 8,
   andaresEmObra: 2,
@@ -20,13 +20,21 @@ export type Morador = {
   apto: number;
   criado_em: string;
   relacao?: 'porta_esquerda' | 'porta_direita' | 'de_cima' | 'de_baixo';
-  novo?: boolean;
-  codigo?: string;
-  chave?: string | null;
   visual?: Partial<Visual> | null;
 };
 
-export type Estatisticas = { moradores: number; ultimo_numero: number; recentes: Morador[] };
+export type Estatisticas = { moradores: number; ultimo_numero: number; recentes: Morador[]; na_fila?: number; ultimo_censo?: { rodado_em: string; novos: number } | null };
+
+// O síndico é o dono do perfil: o boneco dele é a caveira de moletom.
+export const SINDICO = 'paulimsortudo';
+
+// Próximo censo: todo dia às 12h de Brasília (UTC-3, sem horário de verão).
+export function proximoCenso(agora = new Date()) {
+  const alvo = new Date(agora);
+  alvo.setUTCHours(15, 0, 0, 0);
+  if (alvo <= agora) alvo.setUTCDate(alvo.getUTCDate() + 1);
+  return alvo;
+}
 
 export const HANDLE_RE = /^(?!\.)(?!.*\.\.)[a-z0-9._]{1,30}(?<!\.)$/;
 export function normalizarHandle(raw: string) {

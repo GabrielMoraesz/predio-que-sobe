@@ -13,7 +13,7 @@ export const supabase: Rpc = process.env.MOCK_DB === '1' ? mockClient : (createC
 
 export async function estatisticas(): Promise<Estatisticas> {
   const { data, error } = await supabase.rpc('estatisticas');
-  if (error || !data) return { moradores: 1, ultimo_numero: 1, recentes: [] };
+  if (error || !data) return { moradores: 1, ultimo_numero: 1, recentes: [], na_fila: 0, ultimo_censo: null };
   return data as Estatisticas;
 }
 
@@ -37,6 +37,6 @@ export async function catalogo(): Promise<Item[]> {
 
 // Erros do banco viram códigos curtos que a interface sabe explicar.
 export function codigoErro(msg: string) {
-  for (const c of ['chave_invalida', 'itens_invalidos', 'valor_divergente', 'proibido', 'handle_invalido', 'sem_consentimento', 'pedido_nao_encontrado']) if (msg.includes(c)) return c;
+  for (const c of ['espere', 'nao_encontrado', 'itens_invalidos', 'valor_divergente', 'proibido', 'handle_invalido', 'sem_consentimento', 'pedido_nao_encontrado']) if (msg.includes(c)) return c;
   return 'falha';
 }

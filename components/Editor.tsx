@@ -1,25 +1,29 @@
 'use client';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import QRCode from 'qrcode';
 import Vitrine3D from './Vitrine3D';
-import { lerChave } from '@/lib/chave';
-import { CABELOS, CAMISAS, CORES_CABELO, PELES, SLOTS, reais, visualDe, type Item, type Slot, type Visual } from '@/lib/visual';
-import { PREDIO, type Morador } from '@/lib/config';
+import { CABELOS, CAMISAS, CORES_CABELO, GENEROS, PELES, SLOTS, reais, visualDe, type Item, type Slot, type Visual } from '@/lib/visual';
+import type { Morador } from '@/lib/config';
 
 type Pedido = { id: string; valor_centavos: number; pix_copia_cola: string; modo: string; qr?: string; status: 'pendente' | 'pago' | 'expirado' };
 
 const ERROS: Record<string, string> = {
-  chave_invalida: 'Esse aparelho não tem a chave de edição desse boneco.',
-  itens_invalidos: 'Algum item do carrinho não está mais disponível ou já é seu. Recarregue a página.',
+  nao_encontrado: 'Esse morador não está mais no prédio.',
+  itens_invalidos: 'Algum item não está mais disponível. Recarregue a página.',
+  espere: 'A pele e o gênero desse boneco foram trocados há pouco. Dá pra trocar de novo daqui a uma hora.',
   pix_indisponivel: 'O Pix está fora do ar agora. Tente de novo em alguns minutos.',
-  falha: 'Não deu pra salvar agora. Tente de novo.',
+  falha: 'Não deu pra gerar o Pix agora. Tente de novo.',
 };
+const TAXA_TROCA = 100;
+const pagos = ['cabelo', 'corCabelo', 'camisa', ...SLOTS.map((s) => s.id)] as const;
+const gratis = ['pele', 'genero'] as const;
 
 export default function Editor({ m, itens }: { m: Morador; itens: Item[] }) {
-  const [chave, setChave] = useState<string | null | undefined>(undefined);
+  const [salvo, setSalvo] = useState(m.visual);
+  const atual = useMemo(() => visualDe(m.handle, salvo), [m.handle, salvo]);
   const [meus, setMeus] = useState<Set<string>>(new Set());
-  const [v, setV] = useState<Visual>(() => visualDe(m.handle, m.visual));
+  const [v, setV] = useState<Visual>(atual);
   const [aba, setAba] = useState<'base' | Slot>('base');
   const [msg, setMsg] = useState('');
   const [salvando, setSalvando] = useState(false);
@@ -29,29 +33,28 @@ export default function Editor({ m, itens }: { m: Morador; itens: Item[] }) {
 
   const porId = useMemo(() => Object.fromEntries(itens.map((i) => [i.id, i])), [itens]);
   const carrinho = useMemo(() => SLOTS.map((s) => v[s.id]).filter((id): id is string => !!id && !meus.has(id) && !!porId[id]), [v, meus, porId]);
-  const total = carrinho.reduce((t, id) => t + porId[id].preco, 0);
+  const mudou = pagos.some((k) => (v[k] ?? null) !== (atual[k] ?? null));
+  const mudouGratis = gratis.some((k) => v[k] !== atual[k]);
+  const total = carrinho.length ? carrinho.reduce((t, id) => t + porId[id].preco, 0) : TAXA_TROCA;
 
-  const carregarMeus = useCallback(async (c: string) => {
-    const r = await fetch('/api/meus-itens', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ handle: m.handle, chave: c }) });
-    if (r.status === 401) { setChave(null); return; }
-    if (r.ok) setMeus(new Set(await r.json()));
+  useEffect(() => {
+    fetch(`/api/morador/${m.handle}/itens`, { cache: 'no-store' }).then((r) => (r.ok ? r.json() : [])).then((l: string[]) => setMeus(new Set(l))).catch(() => {});
   }, [m.handle]);
 
-  useEffect(() => { const c = lerChave(m.handle); setChave(c); if (c) carregarMeus(c); }, [m.handle, carregarMeus]);
-
-  async function salvar(visual = v) {
-    if (!chave) return;
+  async function salvarGratis() {
     setSalvando(true); setMsg('');
-    const r = await fetch('/api/visual', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ handle: m.handle, chave, visual }) });
+    const r = await fetch('/api/base', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ handle: m.handle, pele: v.pele, genero: v.genero }) });
+    const j = await r.json().catch(() => ({}));
     setSalvando(false);
-    if (!r.ok) { const j = await r.json().catch(() => ({})); setMsg(ERROS[j.erro] || ERROS.falha); return; }
-    setMsg('Boneco salvo. Ele já aparece na sua janela.');
+    if (!r.ok) { setMsg(ERROS[j.erro] || 'Não deu pra salvar agora. Tente de novo.'); return; }
+    setSalvo((x) => ({ ...(x || {}), pele: v.pele, genero: v.genero }));
+    setMsg('Pele e gênero salvos. A janela já mostra o boneco novo.');
   }
 
   async function comprar() {
-    if (!chave || !carrinho.length) return;
+    if (!mudou) return;
     setSalvando(true); setMsg('');
-    const r = await fetch('/api/pedido', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ handle: m.handle, chave, itens: carrinho }) });
+    const r = await fetch('/api/pedido', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ handle: m.handle, visual: v }) });
     const j = await r.json().catch(() => ({}));
     setSalvando(false);
     if (!r.ok) { setMsg(ERROS[j.erro] || ERROS.falha); return; }
@@ -68,7 +71,6 @@ export default function Editor({ m, itens }: { m: Morador; itens: Item[] }) {
       const j = await r.json();
       if (j.status !== 'pendente') {
         setPedido((p) => (p ? { ...p, status: j.status } : p));
-        if (j.status === 'pago' && chave) { await carregarMeus(chave); await salvar(); }
       }
     }, 3000);
     return () => clearInterval(t);
@@ -84,24 +86,23 @@ export default function Editor({ m, itens }: { m: Morador; itens: Item[] }) {
   }
 
   const escolher = (slot: Slot, id: string) => setV((x) => ({ ...x, [slot]: x[slot] === id ? undefined : id }));
-  const base = (campo: 'pele' | 'cabelo' | 'corCabelo' | 'camisa', i: number) => setV((x) => ({ ...x, [campo]: i }));
-
-  if (chave === undefined) return <main className="editor"><p className="carregando">Abrindo seu apartamento…</p></main>;
+  const base = (campo: 'pele' | 'genero' | 'cabelo' | 'corCabelo' | 'camisa', i: number) => setV((x) => ({ ...x, [campo]: i }));
 
   return (
     <main className="editor">
       <header className="editor-topo">
         <Link href={`/m/${m.handle}`} className="voltar-link">Voltar pro apto {m.apto}</Link>
-        <h1>Seu boneco</h1>
+        <h1>Boneco do @{m.handle}</h1>
       </header>
 
       <div className="editor-grade">
         <div className="previa"><Vitrine3D handle={m.handle} visual={v} /></div>
 
-        {chave === null ? (
+        {m.staff ? (
           <section className="sem-chave">
-            <h2>Esse boneco só pode ser editado pelo dono</h2>
-            <p>Abra esta página no celular onde você pegou o apartamento, ou pelo seu link de edição. Perdeu o link? Manda uma mensagem pro @{PREDIO.instagram} que a portaria te ajuda.</p>
+            <h2>O boneco do síndico é fixo</h2>
+            <p>O Paulim não troca de moletom. Mas você pode montar o seu: ache sua janela pelo seu @ e personalize.</p>
+            <Link className="primario" href="/loja">Ver a loja</Link>
           </section>
         ) : (
           <section className="opcoes">
@@ -112,7 +113,12 @@ export default function Editor({ m, itens }: { m: Morador; itens: Item[] }) {
 
             {aba === 'base' ? (
               <div className="base" role="tabpanel">
-                <fieldset><legend>Pele</legend><div className="cores">{PELES.map((c, i) => <button key={c} aria-label={`Tom de pele ${i + 1}`} aria-pressed={v.pele === i} style={{ background: c }} onClick={() => base('pele', i)} />)}</div></fieldset>
+                <div className="gratis-bloco">
+                  <p className="gratis-tag">Grátis</p>
+                  <fieldset><legend>Gênero</legend><div className="chips">{GENEROS.map((c, i) => <button key={c} aria-pressed={v.genero === i} onClick={() => base('genero', i)}>{c}</button>)}</div></fieldset>
+                  <fieldset><legend>Pele</legend><div className="cores">{PELES.map((c, i) => <button key={c} aria-label={`Tom de pele ${i + 1}`} aria-pressed={v.pele === i} style={{ background: c }} onClick={() => base('pele', i)} />)}</div></fieldset>
+                  {mudouGratis && <button className="secundario" onClick={salvarGratis} disabled={salvando}>Salvar pele e gênero de graça</button>}
+                </div>
                 <fieldset><legend>Cabelo</legend><div className="chips">{CABELOS.map((c, i) => <button key={c} aria-pressed={v.cabelo === i} onClick={() => base('cabelo', i)}>{c}</button>)}</div></fieldset>
                 <fieldset><legend>Cor do cabelo</legend><div className="cores">{CORES_CABELO.map((c, i) => <button key={c} aria-label={`Cor de cabelo ${i + 1}`} aria-pressed={v.corCabelo === i} style={{ background: c }} onClick={() => base('corCabelo', i)} />)}</div></fieldset>
                 <fieldset><legend>Camisa</legend><div className="cores">{CAMISAS.map((c, i) => <button key={c} aria-label={`Camisa ${i + 1}`} aria-pressed={v.camisa === i} style={{ background: c }} onClick={() => base('camisa', i)} />)}</div></fieldset>
@@ -135,22 +141,14 @@ export default function Editor({ m, itens }: { m: Morador; itens: Item[] }) {
             )}
 
             <div className="barra">
-              {carrinho.length > 0 ? (
-                <>
-                  <p className="resumo">Provando {carrinho.length === 1 ? porId[carrinho[0]].nome : `${carrinho.length} itens`}. Compre pra usar na janela.</p>
-                  <button className="primario" onClick={comprar} disabled={salvando}>{salvando ? 'Gerando Pix…' : `Comprar por ${reais(total)} no Pix`}</button>
-                </>
-              ) : (
-                <button className="primario" onClick={() => salvar()} disabled={salvando}>{salvando ? 'Salvando…' : 'Salvar meu boneco'}</button>
-              )}
+              <p className="resumo">{!mudou ? 'Cabelo, camisa e itens da loja vão pra janela assim que o Pix for pago.'
+                : carrinho.length ? `${carrinho.length === 1 ? porId[carrinho[0]].nome : `${carrinho.length} itens novos`} + o visual novo vão pra janela do @${m.handle}.`
+                : 'Só trocando o visual com o que já é seu.'}</p>
+              <button className="primario" onClick={comprar} disabled={salvando || !mudou}>{salvando ? 'Gerando Pix…' : !mudou ? 'Escolha o que mudar' : carrinho.length ? `Comprar por ${reais(total)} no Pix` : `Trocar visual por ${reais(TAXA_TROCA)}`}</button>
+              {mudou && <button className="fechar" onClick={() => setV(atual)}>Desfazer</button>}
               {msg && <p className="aviso" role="status">{msg}</p>}
+              <p className="nota">Qualquer pessoa com o @ pode comprar, então dá pra dar de presente pra um vizinho. Os itens ficam no boneco desse @.</p>
             </div>
-
-            <details className="link-edicao">
-              <summary>Editar de outro celular</summary>
-              <p>Guarde este link. Quem tiver ele consegue editar seu boneco, então não compartilhe.</p>
-              <button className="secundario" onClick={() => copiar(`${location.origin}/m/${m.handle}/editar#k=${chave}`, 'link')}>{copiado === 'link' ? 'Link copiado' : 'Copiar meu link de edição'}</button>
-            </details>
           </section>
         )}
       </div>
@@ -159,8 +157,8 @@ export default function Editor({ m, itens }: { m: Morador; itens: Item[] }) {
         {pedido && (pedido.status === 'pago' ? (
           <div className="pago">
             <h2>Pagamento confirmado</h2>
-            <p>Seus itens já estão no boneco e aparecem na sua janela do prédio.</p>
-            <Link className="primario" href={`/m/${m.handle}`}>Ver minha janela</Link>
+            <p>O visual novo já está no boneco e aparece na janela do prédio.</p>
+            <Link className="primario" href={`/m/${m.handle}`}>Ver a janela</Link>
           </div>
         ) : pedido.status === 'expirado' ? (
           <div><h2>Esse Pix expirou</h2><p>Feche e toque em comprar de novo pra gerar outro.</p><button className="secundario" onClick={() => dialog.current?.close()}>Fechar</button></div>

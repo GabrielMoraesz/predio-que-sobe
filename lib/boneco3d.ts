@@ -1,6 +1,7 @@
 // Boneco 3D no estilo blocado: as mesmas peças servem pro busto na janela (instanciado) e pro corpo inteiro na rua.
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+import { SINDICO } from './config';
 import { CAMISAS, CORES_CABELO, PELES, ROUPA_COR, visualDe, type Visual } from './visual';
 
 export const CALCA = '#2B2F45';
@@ -8,16 +9,45 @@ export type Membro = 'pernaE' | 'pernaD' | 'bracoE' | 'bracoD';
 export type Peca = { k: string; x: number; y: number; z: number; cor?: string; rx?: number; ry?: number; rz?: number; membro?: Membro };
 export const PIVOS: Record<Membro, [number, number, number]> = { pernaE: [-0.25, 0.95, 0], pernaD: [0.25, 0.95, 0], bracoE: [-0.74, 1.88, 0], bracoD: [0.74, 1.88, 0] };
 
-function rostoTextura() {
+function rostoTextura(feminino = false) {
   const c = document.createElement('canvas'); c.width = 512; c.height = 256;
   const g = c.getContext('2d')!;
   g.fillStyle = '#fff'; g.fillRect(0, 0, 512, 256);
   g.fillStyle = '#1B2140';
   for (const x of [228, 284]) { g.beginPath(); g.ellipse(x, 102, 10, 17, 0, 0, Math.PI * 2); g.fill(); }
   g.fillStyle = '#fff'; for (const x of [231, 287]) { g.beginPath(); g.arc(x, 95, 4, 0, Math.PI * 2); g.fill(); }
+  if (feminino) { // cílios
+    g.strokeStyle = '#1B2140'; g.lineWidth = 5; g.lineCap = 'round';
+    for (const [x, s] of [[228, -1], [284, 1]] as const) for (const d of [0, 8]) { g.beginPath(); g.moveTo(x + s * (6 + d), 88 - d * 0.4); g.lineTo(x + s * (16 + d), 78 - d * 0.6); g.stroke(); }
+  }
   g.strokeStyle = '#1B2140'; g.lineWidth = 9; g.lineCap = 'round';
   g.beginPath(); g.arc(256, 140, 34, Math.PI * 0.18, Math.PI * 0.82); g.stroke();
   g.fillStyle = 'rgba(226,85,122,.18)'; for (const x of [206, 306]) { g.beginPath(); g.ellipse(x, 140, 16, 9, 0, 0, Math.PI * 2); g.fill(); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+}
+
+// Rosto do síndico: caveira de olhão brilhante, nariz de coração e sorriso de dentes.
+function caveiraTextura() {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 512;
+  const g = c.getContext('2d')!;
+  g.fillStyle = '#F4F2EC'; g.fillRect(0, 0, 512, 512);
+  const tinta = '#14151C';
+  for (const x of [150, 362]) {
+    g.fillStyle = tinta; g.beginPath(); g.ellipse(x, 214, 100, 108, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#fff';
+    g.beginPath(); g.arc(x - 32, 172, 32, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.arc(x + 36, 262, 14, 0, Math.PI * 2); g.fill();
+  }
+  // nariz de coração
+  g.fillStyle = tinta; g.beginPath();
+  g.moveTo(256, 352); g.bezierCurveTo(222, 326, 226, 296, 244, 298); g.bezierCurveTo(252, 299, 256, 306, 256, 312);
+  g.bezierCurveTo(256, 306, 260, 299, 268, 298); g.bezierCurveTo(286, 296, 290, 326, 256, 352); g.fill();
+  // sorriso com dentes
+  g.fillStyle = '#fff'; g.strokeStyle = tinta; g.lineWidth = 12; g.lineJoin = 'round';
+  g.beginPath(); g.moveTo(150, 384); g.quadraticCurveTo(256, 470, 362, 384); g.quadraticCurveTo(256, 420, 150, 384); g.closePath(); g.fill(); g.stroke();
+  g.lineWidth = 7;
+  for (const x of [196, 228, 260, 292, 324]) { g.beginPath(); g.moveTo(x, 384 + Math.abs(x - 256) * 0.05 + 10); g.lineTo(x, 440 - Math.abs(x - 256) * 0.38); g.stroke(); }
+  g.beginPath(); g.moveTo(166, 400); g.quadraticCurveTo(256, 430, 346, 400); g.stroke();
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
 }
 
@@ -29,9 +59,12 @@ export function registro(): Reg {
   const rb = (w: number, h: number, d: number, r = 0.08) => new RoundedBoxGeometry(w, h, d, 3, r);
   const tingivel = () => std('#ffffff');
   const face = std('#ffffff', { map: rostoTextura() });
+  const faceF = std('#ffffff', { map: rostoTextura(true) });
   REG = {
     cabeca: { geo: new THREE.CylinderGeometry(0.33, 0.33, 0.62, 40, 1, false, -Math.PI, Math.PI * 2), mat: [face, tingivel(), tingivel()] },
+    cabecaF: { geo: new THREE.CylinderGeometry(0.33, 0.33, 0.62, 40, 1, false, -Math.PI, Math.PI * 2), mat: [faceF, tingivel(), tingivel()] },
     tronco: { geo: rb(1.0, 0.95, 0.5, 0.1), mat: tingivel() },
+    troncoF: { geo: (() => { const t = rb(1.0, 0.95, 0.5, 0.12); const p = t.attributes.position; for (let i = 0; i < p.count; i++) { const y = p.getY(i); p.setX(i, p.getX(i) * (y > 0 ? 0.9 : 1.02 - (0.08 * y) / 0.475)); } t.computeVertexNormals(); return t; })(), mat: tingivel() },
     manga: { geo: rb(0.46, 0.56, 0.46), mat: tingivel() },
     mao: { geo: rb(0.42, 0.42, 0.42), mat: tingivel() },
     perna: { geo: rb(0.48, 0.95, 0.48), mat: tingivel() },
@@ -56,6 +89,12 @@ export function registro(): Reg {
     camisaBranca: { geo: rb(0.32, 0.5, 0.03, 0.01), mat: std('#FFFFFF') },
     gravata: { geo: rb(0.09, 0.4, 0.03, 0.01), mat: std('#C8352B') },
     gola: { geo: new THREE.TorusGeometry(0.17, 0.035, 8, 20, Math.PI), mat: std('#2F8F6B') },
+    caveira: { geo: rb(0.82, 0.76, 0.74, 0.17), mat: (() => { const o = std('#F4F2EC'); const f = std('#ffffff', { map: caveiraTextura() }); return [o, o, o, o, f, o]; })() },
+    capuz: { geo: rb(0.92, 0.34, 0.34, 0.14), mat: tingivel() },
+    cordao: { geo: rb(0.05, 0.34, 0.05, 0.02), mat: std('#F4F2EC') },
+    ponteira: { geo: new THREE.SphereGeometry(0.04, 10, 8), mat: std('#F4F2EC') },
+    bolso: { geo: rb(0.64, 0.24, 0.04, 0.02), mat: tingivel() },
+    folha: { geo: new THREE.SphereGeometry(0.07, 14, 10).scale(1, 1, 0.35), mat: std('#2FA35A', { roughness: 0.5 }) },
     sombra: { geo: new THREE.CircleGeometry(0.75, 28), mat: new THREE.MeshBasicMaterial({ color: '#000', transparent: true, opacity: 0.22, depthWrite: false }) },
   };
   return REG;
@@ -63,11 +102,13 @@ export function registro(): Reg {
 
 // Lista de peças do boneco, em unidades do corpo (pés em y=0, olhando pra +z).
 export function pecas(handle: string, salvo: Partial<Visual> | null | undefined, corpoInteiro: boolean): Peca[] {
+  if (handle === SINDICO) return sindico(corpoInteiro);
   const v = visualDe(handle, salvo);
   const pele = PELES[v.pele] ?? PELES[0], cab = CORES_CABELO[v.corCabelo] ?? CORES_CABELO[0];
   const camisa = (v.roupa && ROUPA_COR[v.roupa]) || CAMISAS[v.camisa] || CAMISAS[0];
   const L: Peca[] = [];
-  L.push({ k: 'tronco', x: 0, y: 1.425, z: 0, cor: camisa });
+  const fem = v.genero === 1;
+  L.push({ k: fem ? 'troncoF' : 'tronco', x: 0, y: 1.425, z: 0, cor: camisa });
   for (const [s, m] of [[-1, 'bracoE'], [1, 'bracoD']] as const) {
     L.push({ k: 'manga', x: s * 0.74, y: 1.6, z: 0, cor: camisa, membro: m });
     L.push({ k: 'mao', x: s * 0.74, y: 1.12, z: 0, cor: pele, membro: m });
@@ -76,7 +117,7 @@ export function pecas(handle: string, salvo: Partial<Visual> | null | undefined,
     L.push({ k: 'perna', x: s * 0.25, y: 0.52, z: 0, cor: CALCA, membro: m });
     L.push({ k: 'sapato', x: s * 0.25, y: 0.08, z: 0.04, membro: m });
   }
-  L.push({ k: 'cabeca', x: 0, y: 2.23, z: 0, cor: pele });
+  L.push({ k: fem ? 'cabecaF' : 'cabeca', x: 0, y: 2.23, z: 0, cor: pele });
   const chapeu = v.cabeca === 'bone_laranja' || v.cabeca === 'capacete_obra' || v.cabeca === 'chapeu_palha';
   if (v.cabelo === 4) L.push({ k: 'black', x: 0, y: 2.44, z: -0.1, cor: cab });
   if (v.cabelo >= 1 && v.cabelo <= 3 && !chapeu) L.push({ k: 'cabeloCurto', x: 0, y: 2.6, z: -0.02, cor: cab });
@@ -94,6 +135,27 @@ export function pecas(handle: string, salvo: Partial<Visual> | null | undefined,
   if (v.rosto === 'oculos_escuros') L.push({ k: 'oculos', x: 0, y: 2.3, z: 0.335 });
   if (v.rosto === 'oculos_redondos') L.push({ k: 'lente', x: -0.112, y: 2.3, z: 0.335 }, { k: 'lente', x: 0.112, y: 2.3, z: 0.335 });
   if (v.rosto === 'bigode') L.push({ k: 'bigode', x: 0, y: 2.2, z: 0.335 });
+  return L;
+}
+
+// O síndico (@paulimsortudo): caveira de moletom azul-marinho com o trevo da sorte no peito.
+const MOLETOM = '#16224F', MOLETOM_ESCURO = '#101A3D', OSSO = '#F4F2EC';
+function sindico(corpoInteiro: boolean): Peca[] {
+  const L: Peca[] = [{ k: 'tronco', x: 0, y: 1.425, z: 0, cor: MOLETOM }];
+  for (const [s, m] of [[-1, 'bracoE'], [1, 'bracoD']] as const) {
+    L.push({ k: 'manga', x: s * 0.74, y: 1.6, z: 0, cor: MOLETOM, membro: m });
+    L.push({ k: 'mao', x: s * 0.74, y: 1.12, z: 0, cor: OSSO, membro: m });
+  }
+  if (corpoInteiro) for (const [s, m] of [[-1, 'pernaE'], [1, 'pernaD']] as const) {
+    L.push({ k: 'perna', x: s * 0.25, y: 0.52, z: 0, cor: MOLETOM_ESCURO, membro: m });
+    L.push({ k: 'sapato', x: s * 0.25, y: 0.08, z: 0.04, membro: m });
+  }
+  L.push({ k: 'capuz', x: 0, y: 1.98, z: -0.2, cor: MOLETOM });
+  L.push({ k: 'caveira', x: 0, y: 2.29, z: 0 });
+  for (const x of [-0.13, 0.13]) { L.push({ k: 'cordao', x, y: 1.7, z: 0.265 }, { k: 'ponteira', x, y: 1.52, z: 0.27 }); }
+  L.push({ k: 'bolso', x: 0, y: 1.14, z: 0.255, cor: MOLETOM_ESCURO });
+  // trevo de quatro folhas no peito
+  for (const [dx, dy] of [[-1, 1], [1, 1], [-1, -1], [1, -1]]) L.push({ k: 'folha', x: 0.3 + dx * 0.055, y: 1.66 + dy * 0.055, z: 0.27, rz: Math.PI / 4 });
   return L;
 }
 

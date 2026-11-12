@@ -61,7 +61,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ handle:
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 'auto', marginBottom: 110, color: ink }}>
-          <div style={{ display: 'flex', fontSize: 50, fontWeight: 800 }}>Pega o seu e vira meu vizinho</div>
+          <div style={{ display: 'flex', fontSize: 50, fontWeight: 800 }}>Siga @{PREDIO.instagram} e vire meu vizinho</div>
           <div style={{ display: 'flex', fontSize: 38, marginTop: 10 }}>{PREDIO.site}</div>
         </div>
       </div>
