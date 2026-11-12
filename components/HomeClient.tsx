@@ -26,6 +26,8 @@ export default function HomeClient({ stats }: { stats: Estatisticas }) {
   const [handle, setHandle] = useState('');
   const [erro, setErro] = useState('');
   const [procurando, setProcurando] = useState(false);
+  const [todos, setTodos] = useState(false);
+  const novosAcima = stats.ultimo_censo ? stats.ultimo_numero - stats.ultimo_censo.novos : undefined;
   const inputRef = useRef<HTMLInputElement>(null);
   const falta = useContagem();
   const andares = Math.max(1, Math.ceil(stats.ultimo_numero / PREDIO.aptosPorAndar));
@@ -45,7 +47,8 @@ export default function HomeClient({ stats }: { stats: Estatisticas }) {
 
   return (
     <main className="tela">
-      <Building ocupados={stats.ultimo_numero} rotulos={stats.recentes} onAndar={setAndar} />
+      <Building ocupados={stats.ultimo_numero} rotulos={novosAcima === undefined ? stats.recentes : []} novosAcima={novosAcima} todos={todos} onAndar={setAndar} />
+      <button type="button" className="todos-arrobas" aria-pressed={todos} onClick={() => setTodos((t) => !t)}>{todos ? 'Mostrar só os novos' : 'Mostrar todos os @'}</button>
       <Elevador andar={andar} subindo={false} />
       <section className="painel" aria-labelledby="titulo">
         <h1 id="titulo">Siga o @{ig} e ganhe um apartamento.</h1>

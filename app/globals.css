@@ -331,3 +331,6 @@ button:disabled { opacity: .6; cursor: progress; }
 .reembolso-form .pagar { margin-top: 10px; }
 .reembolso-form .erro { color: #FF8A7A; }
 .nota-pagina { font-size: .9rem; }
+.todos-arrobas { position: fixed; z-index: 6; top: max(14px, env(safe-area-inset-top)); right: 14px; font: inherit; font-weight: 800; font-size: .92rem; padding: 10px 16px; border-radius: 999px; cursor: pointer;
+  background: rgba(27,33,64,.88); color: #fff; border: 2px solid rgba(255,211,110,.6); box-shadow: 0 4px 14px rgba(0,0,0,.3); }
+.todos-arrobas[aria-pressed='true'] { background: var(--placa); color: var(--tinta); border-color: var(--tinta); }

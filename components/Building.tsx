@@ -50,6 +50,23 @@ function textSprite(text: string, big = false) {
   return sp;
 }
 
+// Plaquinha com o @ embaixo da janela: nunca fica mais larga que a janela, então não encavala no vizinho.
+function plaquinha(text: string) {
+  const c = document.createElement('canvas');
+  const fs = 44; const ctx = c.getContext('2d')!;
+  ctx.font = `800 ${fs}px Archivo, sans-serif`;
+  const w = Math.ceil(ctx.measureText(text).width) + fs * 0.9;
+  c.width = w; c.height = Math.round(fs * 1.55);
+  ctx.font = `800 ${fs}px Archivo, sans-serif`;
+  ctx.fillStyle = 'rgba(20,24,52,.92)'; ctx.beginPath(); ctx.roundRect(0, 0, w, c.height, 14); ctx.fill();
+  ctx.fillStyle = '#FFFFFF'; ctx.textBaseline = 'middle'; ctx.fillText(text, fs * 0.45, c.height / 2 + 2);
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true }));
+  const esc = Math.min(0.0042, (WIN_W + GAP * 0.8) / w);
+  sp.scale.set(w * esc, c.height * esc, 1); sp.renderOrder = 9;
+  return sp;
+}
+
 function skyTexture() {
   const c = document.createElement('canvas'); c.width = 4; c.height = 512;
   const ctx = c.getContext('2d')!;
@@ -265,13 +282,17 @@ function colide(cx: Caixa[], x: number, z: number, r = 0.5) {
 }
 
 export default function Building({
-  ocupados, foco = null, rotulos = [], onAndar, naRua, joystick, visualFoco = null, acenar, onPerto,
+  ocupados, foco = null, rotulos = [], onAndar, naRua, joystick, visualFoco = null, acenar, onPerto, todos = false, novosAcima,
 }: {
   ocupados: number; foco?: Foco; rotulos?: Morador[]; onAndar?: (andar: number) => void;
+  todos?: boolean; novosAcima?: number;
   naRua?: React.MutableRefObject<boolean>; joystick?: React.MutableRefObject<{ x: number; y: number }>; visualFoco?: Partial<Visual> | null;
   acenar?: React.MutableRefObject<boolean>; onPerto?: (handle: string | null) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const trocarRotulos = useRef<((t: boolean) => void) | null>(null);
+  const todosRef = useRef(todos); todosRef.current = todos;
+  useEffect(() => { trocarRotulos.current?.(todos); }, [todos]);
 
   useEffect(() => {
     const el = ref.current!;
@@ -373,6 +394,7 @@ export default function Building({
       predio.add(b.grupo); pisca = b.pisca;
       // moradores que vão sair do prédio pra passear
       fila.push(...lista.filter((x) => !foco || x[1] !== foco.handle).sort(() => Math.random() - 0.5).slice(0, 60));
+      todasJanelas = lista.filter((x) => x[0] <= total); aplicarRotulos(todosRef.current);
     }).catch(() => { /* sem bonecos, o prédio continua de pé */ });
 
     // andares em obra: pilares + grua
@@ -392,11 +414,27 @@ export default function Building({
     const carga = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1, 1.6), new THREE.MeshLambertMaterial({ color: '#B5533C' })); carga.position.set(-14, -6.5, 0); lanca.add(carga);
     obra.add(lanca); scene.add(obra);
 
-    // rótulos com @
-    rotulos.forEach((m) => {
-      if (foco && m.handle === foco.handle) return;
-      const s = textSprite(rotulo(m)); const p = windowPos(m.andar, m.unidade); s.position.set(p.x, p.y + B + 1.3, p.z + 0.5); scene.add(s);
-    });
+    // rótulos com @: plaquinha embaixo de cada janela. Por padrão só os novos (ou os vizinhos); o botão mostra todos.
+    const rotGrupo = new THREE.Group(); scene.add(rotGrupo);
+    const placas = new Map<number, THREE.Sprite>();
+    const destaque = new Set(rotulos.map((m) => m.numero));
+    let todasJanelas: Janela[] = [];
+    const placaDe = (numero: number, handle: string) => {
+      let sp = placas.get(numero);
+      if (!sp) { sp = plaquinha('@' + handle); const a = Math.floor((numero - 1) / U) + 1, u = ((numero - 1) % U) + 1; const p = windowPos(a, u); sp.position.set(p.x, p.y + B - WIN_H / 2 - 0.26, p.z + 0.4); placas.set(numero, sp); rotGrupo.add(sp); }
+      return sp;
+    };
+    const aplicarRotulos = (t: boolean) => {
+      placas.forEach((sp) => (sp.visible = false));
+      const fonte: [number, string][] = todasJanelas.length ? todasJanelas.map((j) => [j[0], j[1]]) : rotulos.map((m) => [m.numero, m.handle]);
+      for (const [n, h] of fonte.slice(-1500)) {
+        if (foco && h === foco.handle) continue;
+        const mostra = t || destaque.has(n) || (novosAcima !== undefined && n > novosAcima);
+        if (mostra) placaDe(n, h).visible = true;
+      }
+    };
+    trocarRotulos.current = aplicarRotulos;
+    aplicarRotulos(todosRef.current);
     let beacon: THREE.Mesh | null = null;
     if (foco) {
       const s = textSprite('@' + foco.handle, true); const p = windowPos(foco.andar, foco.unidade);
@@ -575,7 +613,7 @@ export default function Building({
     const onResize = () => { ajustarOffset(); renderer.setSize(el.clientWidth, el.clientHeight); };
     window.addEventListener('resize', onResize);
     return () => {
-      vivo = false; window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku);
+      vivo = false; trocarRotulos.current = null; window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku);
       cancelAnimationFrame(raf); window.removeEventListener('resize', onResize); controls.dispose();
       scene.traverse((o) => { const m = o as THREE.Mesh; m.geometry?.dispose?.(); const mat = m.material as THREE.Material | THREE.Material[] | undefined; (Array.isArray(mat) ? mat : mat ? [mat] : []).forEach((x) => x.dispose()); });
       renderer.dispose(); el.removeChild(renderer.domElement);

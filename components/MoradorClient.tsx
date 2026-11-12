@@ -19,6 +19,7 @@ export default function MoradorClient({ m, viz, ocupados }: { m: Morador; viz: M
   const joystick = useRef({ x: 0, y: 0 });
   const acenar = useRef(false);
   const [perto, setPerto] = useState<string | null>(null);
+  const [todos, setTodos] = useState(false);
   const alternarRua = (v: boolean) => { naRua.current = v; setRua(v); joystick.current = { x: 0, y: 0 }; };
   const storyUrl = `/api/story/${m.handle}`;
 
@@ -36,7 +37,8 @@ export default function MoradorClient({ m, viz, ocupados }: { m: Morador; viz: M
 
   return (
     <main className="tela">
-      <Building ocupados={ocupados} foco={{ andar: m.andar, unidade: m.unidade, handle: m.handle }} rotulos={viz} onAndar={setAndar} naRua={naRua} joystick={joystick} visualFoco={m.visual} acenar={acenar} onPerto={setPerto} />
+      <Building ocupados={ocupados} foco={{ andar: m.andar, unidade: m.unidade, handle: m.handle }} rotulos={viz} onAndar={setAndar} naRua={naRua} joystick={joystick} visualFoco={m.visual} acenar={acenar} onPerto={setPerto} todos={todos} />
+      {!rua && <button type="button" className="todos-arrobas" aria-pressed={todos} onClick={() => setTodos((t) => !t)}>{todos ? 'Mostrar só os vizinhos' : 'Mostrar todos os @'}</button>}
       {rua && (
         <>
           <button type="button" className="subir" onClick={() => alternarRua(false)}>Voltar pro apê</button>
