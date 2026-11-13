@@ -73,10 +73,16 @@ export default function HomeClient({ stats }: { stats: Estatisticas }) {
           {erro && <p id="erro" className="erro" role="alert">{erro}</p>}
         </form>
 
+        <Link href="/loja" className="loja-cta">
+          <span aria-hidden>👑</span>
+          <span><strong>Reforme o seu boneco</strong>Coroa, caramelo na janela, neon… a partir de R$ 1</span>
+          <span aria-hidden className="seta">→</span>
+        </Link>
+
         <p className="censo">
           {stats.moradores.toLocaleString('pt-BR')} moradores em {andares.toLocaleString('pt-BR')} {andares === 1 ? 'andar' : 'andares'}
           {stats.ultimo_censo ? `. No último censo chegaram ${stats.ultimo_censo.novos.toLocaleString('pt-BR')}.` : '.'}{' '}
-          Com o seu @ você compra acessórios pro seu boneco. <Link href="/loja">Ver a loja</Link>
+         
         </p>
         <p className="optout">Não quer aparecer no prédio? Mande uma DM pro @{ig} que a portaria tira sua janela.</p>
       </section>

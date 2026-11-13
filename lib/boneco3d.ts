@@ -1,5 +1,6 @@
 // Boneco 3D no estilo blocado: as mesmas peças servem pro busto na janela (instanciado) e pro corpo inteiro na rua.
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { SINDICO } from './config';
 import { CAMISAS, CORES_CABELO, PELES, ROUPA_COR, visualDe, type Visual } from './visual';
@@ -59,6 +60,27 @@ function caveiraTextura() {
 
 type Reg = Record<string, { geo: THREE.BufferGeometry; mat: THREE.Material | THREE.Material[] }>;
 let REG: Reg | null = null;
+
+// Coroa: aro grosso, cinco pontas com bolinha e joias vermelhas. Uma geometria só (cabe no InstancedMesh das janelas).
+function coroaGeo() {
+  const partes: THREE.BufferGeometry[] = [new THREE.CylinderGeometry(0.39, 0.4, 0.16, 28)];
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2;
+    const ponta = new THREE.ConeGeometry(0.085, 0.24, 4); ponta.rotateY(Math.PI / 4); ponta.translate(Math.sin(a) * 0.34, 0.19, Math.cos(a) * 0.34);
+    const bola = new THREE.SphereGeometry(0.045, 10, 8); bola.translate(Math.sin(a) * 0.34, 0.33, Math.cos(a) * 0.34);
+    partes.push(ponta, bola);
+  }
+  return mergeGeometries(partes.map((g) => g.toNonIndexed()))!;
+}
+function coroaJoias() {
+  const partes: THREE.BufferGeometry[] = [];
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2;
+    const j = new THREE.SphereGeometry(0.055, 12, 10); j.scale(1, 1, 0.6); j.lookAt(new THREE.Vector3(Math.sin(a), 0, Math.cos(a))); j.translate(Math.sin(a) * 0.405, 0, Math.cos(a) * 0.405);
+    partes.push(j);
+  }
+  return mergeGeometries(partes.map((g) => g.toNonIndexed()))!;
+}
 export function registro(): Reg {
   if (REG) return REG;
   const std = (color: THREE.ColorRepresentation, extra: THREE.MeshStandardMaterialParameters = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.62, metalness: 0, ...extra });
@@ -88,7 +110,8 @@ export function registro(): Reg {
     palhaFita: { geo: new THREE.CylinderGeometry(0.345, 0.345, 0.07, 28), mat: std('#B5533C') },
     fone: { geo: new THREE.TorusGeometry(0.4, 0.05, 10, 28, Math.PI), mat: std('#1B2140') },
     foneConcha: { geo: rb(0.12, 0.24, 0.22, 0.05), mat: std('#E2557A') },
-    coroa: { geo: new THREE.CylinderGeometry(0.27, 0.3, 0.24, 5, 1, true), mat: std('#F7C531', { side: THREE.DoubleSide, metalness: 0.6, roughness: 0.3, emissive: '#4A3500' }) },
+    coroa: { geo: coroaGeo(), mat: std('#F7C531', { metalness: 0.55, roughness: 0.28, emissive: '#5A4000' }) },
+    coroaJoia: { geo: coroaJoias(), mat: std('#E0284A', { roughness: 0.15, emissive: '#5A0A18' }) },
     oculos: { geo: rb(0.52, 0.13, 0.05, 0.03), mat: std('#111522', { roughness: 0.2 }) },
     lente: { geo: new THREE.TorusGeometry(0.085, 0.018, 8, 20), mat: std('#1B2140') },
     bigode: { geo: rb(0.26, 0.07, 0.05, 0.03), mat: std('#3B2416') },
@@ -136,7 +159,7 @@ export function pecas(handle: string, salvo: Partial<Visual> | null | undefined,
     case 'capacete_obra': L.push({ k: 'capacete', x: 0, y: 2.46, z: 0 }, { k: 'capaceteAba', x: 0, y: 2.48, z: 0 }); break;
     case 'chapeu_palha': L.push({ k: 'palhaAba', x: 0, y: 2.56, z: 0 }, { k: 'palhaCopa', x: 0, y: 2.72, z: 0 }, { k: 'palhaFita', x: 0, y: 2.64, z: 0 }); break;
     case 'fone': L.push({ k: 'fone', x: 0, y: 2.3, z: 0 }, { k: 'foneConcha', x: -0.38, y: 2.24, z: 0 }, { k: 'foneConcha', x: 0.38, y: 2.24, z: 0 }); break;
-    case 'coroa': L.push({ k: 'coroa', x: 0, y: 2.68, z: 0 }); break;
+    case 'coroa': L.push({ k: 'coroa', x: 0, y: 2.74, z: 0 }, { k: 'coroaJoia', x: 0, y: 2.74, z: 0 }); break;
   }
   if (v.rosto === 'oculos_escuros') L.push({ k: 'oculos', x: 0, y: 2.3, z: 0.335 });
   if (v.rosto === 'oculos_redondos') L.push({ k: 'lente', x: -0.112, y: 2.3, z: 0.335 }, { k: 'lente', x: 0.112, y: 2.3, z: 0.335 });
