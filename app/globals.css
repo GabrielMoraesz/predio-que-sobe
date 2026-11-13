@@ -383,3 +383,8 @@ button:disabled { opacity: .6; cursor: progress; }
 .loja-cta span:nth-child(2) { display: grid; font-size: .9rem; color: #C9CDE6; flex: 1; }
 .loja-cta .seta { font-size: 1.3rem; color: #FFD36E; }
 .loja-cta:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--tinta); }
+.topo-loja { position: fixed; z-index: 6; top: calc(max(14px, env(safe-area-inset-top)) + 52px); right: 14px; display: inline-flex; align-items: center; gap: 6px; font-weight: 900; font-size: .95rem; padding: 10px 16px; border-radius: 999px; text-decoration: none; color: var(--tinta); background: var(--placa); border: 2px solid var(--tinta); box-shadow: 0 4px 0 var(--tinta), 0 0 0 4px rgba(247,197,49,.25); animation: brilha 2.4s ease-in-out infinite; }
+.topo-loja:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--tinta); }
+@keyframes brilha { 50% { box-shadow: 0 4px 0 var(--tinta), 0 0 0 8px rgba(247,197,49,.08); } }
+@media (prefers-reduced-motion: reduce) { .topo-loja { animation: none; } }
+.painel .loja-cta { margin: 12px 0; }

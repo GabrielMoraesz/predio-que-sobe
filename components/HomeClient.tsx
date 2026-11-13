@@ -48,6 +48,7 @@ export default function HomeClient({ stats }: { stats: Estatisticas }) {
   return (
     <main className="tela">
       <Building ocupados={stats.ultimo_numero} rotulos={novosAcima === undefined ? stats.recentes : []} novosAcima={novosAcima} todos={todos} onAndar={setAndar} />
+      <Link href="/loja" className="topo-loja"><span aria-hidden>👑</span> Personalizar</Link>
       <button type="button" className="todos-arrobas" aria-pressed={todos} onClick={() => setTodos((t) => !t)}>{todos ? 'Mostrar só os novos' : 'Mostrar todos os @'}</button>
       <Elevador andar={andar} subindo={false} />
       <section className="painel" aria-labelledby="titulo">
@@ -75,7 +76,7 @@ export default function HomeClient({ stats }: { stats: Estatisticas }) {
 
         <Link href="/loja" className="loja-cta">
           <span aria-hidden>👑</span>
-          <span><strong>Reforme o seu boneco</strong>Coroa, caramelo na janela, neon… a partir de R$ 1</span>
+          <span><strong>Personalize seu boneco</strong>Coroa, caramelo na janela, neon… a partir de R$ 1</span>
           <span aria-hidden className="seta">→</span>
         </Link>
 

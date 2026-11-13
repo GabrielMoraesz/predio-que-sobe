@@ -38,6 +38,7 @@ export default function MoradorClient({ m, viz, ocupados }: { m: Morador; viz: M
   return (
     <main className="tela">
       <Building ocupados={ocupados} foco={{ andar: m.andar, unidade: m.unidade, handle: m.handle }} rotulos={viz} onAndar={setAndar} naRua={naRua} joystick={joystick} visualFoco={m.visual} acenar={acenar} onPerto={setPerto} todos={todos} />
+      {!rua && <Link href={`/loja?u=${m.handle}`} className="topo-loja"><span aria-hidden>👑</span> Personalizar</Link>}
       {!rua && <button type="button" className="todos-arrobas" aria-pressed={todos} onClick={() => setTodos((t) => !t)}>{todos ? 'Mostrar só os vizinhos' : 'Mostrar todos os @'}</button>}
       {rua && (
         <>
@@ -51,12 +52,18 @@ export default function MoradorClient({ m, viz, ocupados }: { m: Morador; viz: M
       <Elevador andar={andar} subindo={andar < m.andar} />
       <section className="painel morador" aria-label={`Apartamento de ${rotulo(m)}`} hidden={rua}>
         <Carteirinha m={m} />
+        {!m.staff && (
+          <Link href={`/loja?u=${m.handle}`} className="loja-cta">
+            <span aria-hidden>👑</span>
+            <span><strong>Personalize seu boneco</strong>Acessórios, roupa, bicho e luz na janela</span>
+            <span aria-hidden className="seta">→</span>
+          </Link>
+        )}
         <div className="acoes">
           <a className="primario" href={storyUrl} download={`apto-${m.apto}.png`}>Baixar pro story</a>
           <button type="button" className="secundario" onClick={compartilhar}>Chamar um vizinho</button>
         </div>
         <button type="button" className="descer" onClick={() => alternarRua(true)}>Descer pra rua e passear</button>
-        <Link className="editar" href={`/loja?u=${m.handle}`}>{m.staff ? "Ver a loja" : "Reformar meu boneco"}</Link>
         {aviso && <p className="aviso" role="status">{aviso}</p>}
 
 
