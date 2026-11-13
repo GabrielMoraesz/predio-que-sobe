@@ -388,3 +388,33 @@ button:disabled { opacity: .6; cursor: progress; }
 @keyframes brilha { 50% { box-shadow: 0 4px 0 var(--tinta), 0 0 0 8px rgba(247,197,49,.08); } }
 @media (prefers-reduced-motion: reduce) { .topo-loja { animation: none; } }
 .painel .loja-cta { margin: 12px 0; }
+/* ===== Caixa da loja (/admin/pix) ===== */
+.caixa-pix { max-width: 520px; margin: 0 auto; padding: 18px 16px 60px; min-height: 100vh; box-sizing: border-box; background: var(--papel); color: var(--tinta); }
+.caixa-pix header { display: flex; align-items: center; justify-content: space-between; }
+.caixa-pix h1 { margin: 0 0 6px; font-size: 1.7rem; font-stretch: 112%; }
+.caixa-pix .nota { color: #4A5170; font-size: .95rem; margin: .4rem 0 1rem; }
+.caixa-pix .sair { font: inherit; font-weight: 800; background: none; border: 2px solid var(--tinta); border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+.caixa-pix .entrar { display: grid; gap: 8px; }
+.caixa-pix .entrar label { font-weight: 800; }
+.caixa-pix .entrar input { font: inherit; font-size: 1.1rem; padding: 14px; border: 2px solid var(--tinta); border-radius: 12px; }
+.caixa-pix .ligar-avisos { width: 100%; font: inherit; font-weight: 800; padding: 12px; border-radius: 14px; border: 2px dashed var(--tinta); background: #FFF6D6; cursor: pointer; margin-bottom: 12px; }
+.caixa-pix .vazio { text-align: center; font-size: 1.2rem; font-weight: 800; padding: 40px 0; color: #4A5170; }
+.caixa-pix .pedidos { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; }
+.caixa-pix .pedidos > li { background: #fff; border: 2px solid var(--tinta); border-radius: 20px; padding: 16px; box-shadow: 0 5px 0 var(--tinta); }
+.caixa-pix .pedidos > li.armado { border-color: #2F8F6B; box-shadow: 0 5px 0 #2F8F6B; }
+.caixa-pix .topo { display: flex; justify-content: space-between; align-items: baseline; }
+.caixa-pix .valor { font-family: 'DSEG7', monospace; font-size: 1.9rem; color: #C2271B; font-weight: 700; }
+.caixa-pix .quando { color: #4A5170; font-weight: 700; }
+.caixa-pix .quem { font-size: 1.25rem; font-weight: 900; margin: 6px 0 2px; word-break: break-all; }
+.caixa-pix .o-que, .caixa-pix .codigo { margin: 2px 0; color: #3A4060; }
+.caixa-pix .codigo strong { font-family: ui-monospace, monospace; letter-spacing: .04em; color: var(--tinta); }
+.caixa-pix .acoes { display: flex; gap: 10px; align-items: center; margin-top: 12px; }
+.caixa-pix .recebi { flex: 1; font: inherit; font-size: 1.1rem; font-weight: 900; padding: 16px; border-radius: 16px; border: 2px solid var(--tinta); background: #7CF29A; color: var(--tinta); cursor: pointer; box-shadow: 0 4px 0 var(--tinta); }
+.caixa-pix .armado .recebi { background: #2F8F6B; color: #fff; }
+.caixa-pix .recebi:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--tinta); }
+.caixa-pix .ver { font-weight: 800; color: var(--tinta); white-space: nowrap; }
+.caixa-pix .feitos { margin-top: 22px; }
+.caixa-pix .feitos h2 { font-size: 1rem; margin: 0 0 6px; }
+.caixa-pix .feitos ul { list-style: none; padding: 0; margin: 0; color: #2F8F6B; font-weight: 800; display: grid; gap: 4px; }
+.caixa-pix .rodape { margin-top: 28px; text-align: center; font-size: .85rem; color: #4A5170; }
+.caixa-pix .rodape a { color: var(--tinta); font-weight: 800; }
