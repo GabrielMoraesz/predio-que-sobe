@@ -185,6 +185,41 @@ function montarCidade(scene: THREE.Scene, colisores: Caixa[]): Carros {
   return carros;
 }
 
+
+// Nuvens: sprites macios espalhados pela altura do prédio, passando devagar.
+function nuvemTextura() {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 128;
+  const ctx = c.getContext('2d')!;
+  const bolha = (x: number, y: number, r: number, a: number) => {
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, `rgba(255,255,255,${a})`); g.addColorStop(0.6, `rgba(255,255,255,${a * 0.55})`); g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  };
+  for (let i = 0; i < 18; i++) bolha(40 + Math.random() * 176, 66 + (Math.random() * 2 - 1) * 14, 18 + Math.random() * 30, 0.42);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+type Nuvem = { s: THREE.Sprite; v: number };
+function montarNuvens(scene: THREE.Scene, H: number): { lista: Nuvem[]; lim: number } {
+  const texs = [nuvemTextura(), nuvemTextura(), nuvemTextura()];
+  const mats = texs.map((map) => new THREE.SpriteMaterial({ map, transparent: true, depthWrite: false, opacity: 0.7, color: '#FFF1EA' }));
+  const lim = 260 + H * 0.35;
+  const n = Math.min(40, 12 + Math.round(H / 30));
+  const lista: Nuvem[] = [];
+  for (let i = 0; i < n; i++) {
+    const s = new THREE.Sprite(mats[i % mats.length]);
+    const y = 30 + Math.pow(Math.random(), 0.8) * (H * 1.15 + 40);
+    const atras = Math.random() < 0.62;
+    const z = atras ? -(40 + Math.random() * (140 + H * 0.15)) : 45 + Math.random() * (90 + H * 0.1);
+    const esc = 55 + Math.random() * 55 + y * 0.16;
+    s.scale.set(esc * 1.6, esc * 0.5, 1);
+    s.position.set((Math.random() * 2 - 1) * lim, y, z);
+    s.renderOrder = -1;
+    scene.add(s);
+    lista.push({ s, v: (1.2 + Math.random() * 2.6) * (y > H * 0.5 ? 1.4 : 1) });
+  }
+  return { lista, lim };
+}
+
 function moverCarros(carros: Carros, dt: number) {
   carros.mesh.count = 0; carros.teto.count = 0;
   for (const c of carros.dados) {
@@ -324,6 +359,7 @@ export default function Building({
     scene.add(new THREE.HemisphereLight('#FFE6CC', '#5A5F86', 1.7));
     scene.add(new THREE.AmbientLight('#ffffff', 0.35));
     const sun = new THREE.DirectionalLight('#FFC59A', 1.6); sun.position.set(-30, 40 + H, 40); scene.add(sun);
+    const nuvens = montarNuvens(scene, H);
 
     const colisores: Caixa[] = [{ x0: -FACE_W / 2, x1: FACE_W / 2, z0: -DEPTH / 2, z1: DEPTH / 2 }];
     const carros = montarCidade(scene, colisores);
@@ -482,6 +518,7 @@ export default function Building({
       raf = requestAnimationFrame(loop);
       if (document.hidden) { antes = now; return; }
       const dt = Math.min(0.1, (now - antes) / 1000); antes = now;
+      if (!reduce) for (const nv of nuvens.lista) { nv.s.position.x += nv.v * dt; if (nv.s.position.x > nuvens.lim) nv.s.position.x = -nuvens.lim; }
       if (anim) {
         const x = Math.min(1, (now - t0) / 1000 / dur); const e = ease(x);
         camera.position.lerpVectors(inicio.pos, fim.pos, e); controls.target.lerpVectors(inicio.alvo, fim.alvo, e);
