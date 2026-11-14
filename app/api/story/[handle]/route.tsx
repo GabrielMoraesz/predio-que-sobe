@@ -51,7 +51,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ handle:
             <img src={avatarDataUri(m.handle, 210, m.visual)} width={210} height={210} alt="" />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-            <div style={{ display: 'flex', fontSize: 28, color: '#2B63B0', fontWeight: 800 }}>{PREDIO.edificio}</div>
+            <div style={{ display: 'flex', fontSize: 28, color: '#2B63B0', fontWeight: 800 }}>{m.predio === 'simba' ? 'Edifício Simba' : PREDIO.edificio}</div>
             <div style={{ display: 'flex', fontSize: rotulo(m).length > 18 ? 46 : 58, fontWeight: 800, marginTop: 8 }}>{rotulo(m)}</div>
             <div style={{ display: 'flex', gap: 40, marginTop: 26 }}>
               <div style={{ display: 'flex', flexDirection: 'column' }}><div style={{ display: 'flex', fontSize: 26 }}>Apto</div><div style={{ display: 'flex', fontFamily: 'DSEG7', fontSize: 56, color: '#B5533C' }}>{m.apto}</div></div>

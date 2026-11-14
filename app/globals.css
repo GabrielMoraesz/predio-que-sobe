@@ -418,3 +418,8 @@ button:disabled { opacity: .6; cursor: progress; }
 .caixa-pix .feitos ul { list-style: none; padding: 0; margin: 0; color: #2F8F6B; font-weight: 800; display: grid; gap: 4px; }
 .caixa-pix .rodape { margin-top: 28px; text-align: center; font-size: .85rem; color: #4A5170; }
 .caixa-pix .rodape a { color: var(--tinta); font-weight: 800; }
+.ver-tudo { position: fixed; z-index: 6; left: 50%; transform: translateX(-50%); top: calc(max(14px, env(safe-area-inset-top)) + 4px); font: inherit; font-weight: 900; font-size: 1rem; padding: 12px 20px; border-radius: 999px; border: 2px solid var(--tinta); background: #fff; color: var(--tinta); box-shadow: 0 4px 0 var(--tinta); cursor: pointer; white-space: nowrap; }
+.ver-tudo:active { transform: translate(-50%, 3px); box-shadow: 0 1px 0 var(--tinta); }
+@media (max-width: 859px) { .ver-tudo { top: auto; bottom: calc(min(64vh, 60%) + 12px); } }
+.topo-simba { position: fixed; z-index: 6; top: calc(max(14px, env(safe-area-inset-top)) + 106px); right: 14px; display: inline-flex; align-items: center; gap: 6px; font: inherit; font-weight: 900; font-size: .95rem; padding: 10px 16px; border-radius: 999px; color: #FFE7B8; background: #1B2140; border: 2px solid #E3A85A; box-shadow: 0 4px 0 var(--tinta); cursor: pointer; }
+.topo-simba:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--tinta); }

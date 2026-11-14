@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
@@ -15,7 +15,7 @@ const RUA_Z = 20; // rua na frente do prédio
 const COLS = { concreto: '#DDD6CA', pastilha: '#2B63B0', faixa: '#E9E2D6', acesa: '#FFD36E', apagada: '#273055', grua: '#F7C531' };
 const PASTEIS = ['#E8B4A0', '#F2D28B', '#A8D5C2', '#9DB8E0', '#E9A6B9', '#D9D2C4', '#C7B8E6', '#F0C8A0', '#B9D7A1'];
 
-export type Foco = { andar: number; unidade: number; handle: string } | null;
+export type Foco = { andar: number; unidade: number; handle: string; predio?: 'principal' | 'simba' } | null;
 type Janela = [number, string, Partial<Visual> | null];
 type Caixa = { x0: number; x1: number; z0: number; z1: number };
 type Carros = { mesh: THREE.InstancedMesh; teto: THREE.InstancedMesh; dados: { x: number; z: number; v: number; cor: string }[] };
@@ -135,6 +135,7 @@ function montarCidade(scene: THREE.Scene, colisores: Caixa[]): Carros {
     const cal = new THREE.Mesh(calcadaGeo, calcadaMat); cal.scale.set(36, 1, 31); cal.position.set(cx, 0.12, cz); scene.add(cal);
     if (i === 0 && j === 0) { arvore(-14, 12.5, 0.9); continue; } // lote do nosso prédio
     if (j === 1) {
+      if (i === -1) { arvore(cx - 16, cz + 13); arvore(cx + 16, cz + 13); continue; } // lote do Edifício Simba
       if (i === 0) { // praça na frente do prédio
         const g = new THREE.Mesh(new THREE.BoxGeometry(32, 0.3, 26), lamb('#5FA35C')); g.position.set(cx, 0.2, cz); scene.add(g);
         for (let t = 0; t < 14; t++) arvore(cx - 14 + rnd() * 28, cz - 11 + rnd() * 22, 0.8 + rnd() * 0.5);
@@ -302,41 +303,57 @@ function montarPadaria(predio: THREE.Group) {
 }
 
 
-// Prédio Simba: um andar só, ao lado do prédio principal, em homenagem ao gatinho Simba de um inscrito. Só o @vitorcosta47 mora aqui.
-const SIMBA_MORADOR = 'vitorcosta47';
-function montarSimba(scene: THREE.Scene, colisores: Caixa[], B: number) {
-  const g = new THREE.Group(); scene.add(g);
-  const cx = FACE_W / 2 + 5.6, cz = -0.5, w = 6.2, d = 6, h = 3.3;
-  const zf = cz + d / 2;
-  const lamb = (color: THREE.ColorRepresentation) => new THREE.MeshLambertMaterial({ color });
-  const add = (geo: THREE.BufferGeometry, mat: THREE.Material, x: number, y: number, z: number) => { const m = new THREE.Mesh(geo, mat); m.position.set(cx + x, B + y, z); g.add(m); return m; };
-  // corpo, faixa de pastilha e platibanda
-  add(new THREE.BoxGeometry(w, h, d), lamb('#F2D1A8'), 0, h / 2, cz);
-  add(new THREE.BoxGeometry(w + 0.1, 0.7, d + 0.1), lamb('#C9733B'), 0, 0.35, cz);
-  add(new THREE.BoxGeometry(w + 0.4, 0.24, d + 0.4), lamb('#E9E2D6'), 0, h + 0.12, cz);
-  // porta
-  add(new THREE.BoxGeometry(1.1, 2.0, 0.08), lamb('#7A4A2A'), 1.75, 1.0, zf + 0.04);
-  add(new THREE.SphereGeometry(0.06, 8, 6), lamb('#F7C531'), 1.4, 1.0, zf + 0.1);
-  // janela do apê (acesa)
-  const jx = -1.0, jy = 1.75;
-  add(new THREE.PlaneGeometry(WIN_W * 1.3, WIN_H), new THREE.MeshBasicMaterial({ color: COLS.acesa, toneMapped: false }), jx, jy, zf + 0.03);
-  add(new THREE.BoxGeometry(WIN_W * 1.3 + 0.16, 0.16, 0.34), lamb('#EFE9DE'), jx, jy - WIN_H / 2 + 0.08, zf + 0.17);
-  // o morador
-  const vitor = corpoInteiro(SIMBA_MORADOR, null, 0.5);
-  vitor.g.children[1].visible = false;
-  vitor.g.position.set(cx + jx - 0.15, B + jy - 1.12, zf + 0.12); g.add(vitor.g);
-  // gatinho no parapeito
-  const pelo = lamb('#E3A85A'), listra = lamb('#C9733B');
-  const sx = cx + jx + 0.5, sy = B + jy - WIN_H / 2 + 0.16, sz = zf + 0.22;
-  const gato = new THREE.Group(); gato.position.set(sx, sy, sz); g.add(gato);
+// Edifício Simba: segundo prédio, do outro lado da rua, igual ao principal. Homenagem ao gatinho Simba de um inscrito.
+// Fica no lote à esquerda da praça e olha pra rua (de frente pro prédio principal).
+export const SIMBA = { x: -44, z: 40 };
+const simbaMundo = (v: THREE.Vector3) => new THREE.Vector3(SIMBA.x - v.x, v.y, SIMBA.z - v.z);
+function gatinho(cor = '#E3A85A', listra = '#C9733B') {
+  const gato = new THREE.Group();
+  const lamb = (c: string) => new THREE.MeshLambertMaterial({ color: c });
+  const pelo = lamb(cor), lis = lamb(listra);
   const peca = (geo: THREE.BufferGeometry, mat: THREE.Material, x: number, y: number, z: number) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); gato.add(m); return m; };
   peca(new RoundedBoxGeometry(0.34, 0.22, 0.2, 2, 0.06), pelo, 0, 0.11, 0);
   peca(new RoundedBoxGeometry(0.22, 0.2, 0.2, 2, 0.06), pelo, 0.2, 0.27, 0.02);
   for (const ox of [0.14, 0.26]) { const o = peca(new THREE.ConeGeometry(0.045, 0.09, 4), pelo, ox, 0.41, 0.02); o.rotation.y = Math.PI / 4; }
-  const rabo = peca(new THREE.CapsuleGeometry(0.03, 0.26, 4, 8), listra, -0.2, 0.22, 0); rabo.rotation.z = 0.5;
-  for (const lx of [-0.06, 0.06]) peca(new THREE.BoxGeometry(0.03, 0.2, 0.21), listra, lx, 0.12, 0);
+  const rabo = peca(new THREE.CapsuleGeometry(0.03, 0.26, 4, 8), lis, -0.2, 0.22, 0); rabo.rotation.z = 0.5;
+  for (const lx of [-0.06, 0.06]) peca(new THREE.BoxGeometry(0.03, 0.2, 0.21), lis, lx, 0.12, 0);
   for (const ex of [0.16, 0.24]) peca(new THREE.SphereGeometry(0.022, 8, 6), lamb('#1B2140'), ex, 0.29, 0.12);
-  // letreiro na platibanda
+  return { gato, rabo };
+}
+function montarTorreSimba(scene: THREE.Scene, colisores: Caixa[], B: number, lista: Janela[]) {
+  const g = new THREE.Group(); g.position.set(SIMBA.x, 0, SIMBA.z); g.rotation.y = Math.PI; scene.add(g);
+  const ultimo = lista.reduce((m, x) => Math.max(m, x[0]), 0);
+  const prontos = Math.max(1, Math.ceil(ultimo / U)), hp = prontos * FH, total = prontos * U;
+  const lamb = (c: string) => new THREE.MeshLambertMaterial({ color: c });
+  const corpo = new THREE.Mesh(new THREE.BoxGeometry(FACE_W, hp, DEPTH), lamb('#F2D1A8')); corpo.position.y = hp / 2 + B; g.add(corpo);
+  const lajeGeo = new THREE.BoxGeometry(FACE_W + 0.5, 0.22, DEPTH + 0.5);
+  const lajes = new THREE.InstancedMesh(lajeGeo, lamb(COLS.faixa), prontos + 1); const m4 = new THREE.Matrix4();
+  for (let i = 0; i <= prontos; i++) { m4.makeTranslation(0, i * FH + B, 0); lajes.setMatrixAt(i, m4); } g.add(lajes);
+  const pastilha = new THREE.Mesh(new THREE.BoxGeometry(FACE_W + 0.1, 0.9, DEPTH + 0.1), lamb('#C9733B')); pastilha.position.y = 0.45 + B; g.add(pastilha);
+  const pg = new THREE.Group(); pg.position.y = B; g.add(pg);
+  const winGeo = new THREE.PlaneGeometry(WIN_W, WIN_H);
+  const janelas = new THREE.InstancedMesh(winGeo, new THREE.MeshBasicMaterial({ color: '#ffffff', toneMapped: false }), total);
+  const parapeito = new THREE.InstancedMesh(new THREE.BoxGeometry(WIN_W + 0.14, 0.16, 0.32), lamb('#EFE9DE'), total);
+  const ocup = new Set(lista.map((x) => x[0])); const cor = new THREE.Color();
+  for (let n = 1; n <= total; n++) {
+    const p = windowPos(Math.floor((n - 1) / U) + 1, ((n - 1) % U) + 1);
+    m4.makeTranslation(p.x, p.y, p.z); janelas.setMatrixAt(n - 1, m4);
+    m4.makeTranslation(p.x, p.y - WIN_H / 2 + 0.08, p.z + 0.16); parapeito.setMatrixAt(n - 1, m4);
+    janelas.setColorAt(n - 1, cor.set(ocup.has(n) ? COLS.acesa : COLS.apagada));
+  }
+  pg.add(janelas, parapeito);
+  const b = montarBonecos(lista, janelas, total); pg.add(b.grupo);
+  for (const [n, h] of lista.slice(0, 300)) {
+    const p = windowPos(Math.floor((n - 1) / U) + 1, ((n - 1) % U) + 1);
+    const sp = plaquinha('@' + h); sp.position.set(p.x, p.y - WIN_H / 2 - 0.26, p.z + 0.4); pg.add(sp);
+  }
+  // andares em obra (o Simba também sobe)
+  const pilarGeo = new THREE.BoxGeometry(0.45, FH, 0.45); const pilarMat = lamb('#B8B0A2');
+  for (let a2 = 0; a2 < PREDIO.andaresEmObra; a2++) {
+    for (const px of [-FACE_W / 2 + 0.3, -FACE_W / 6, FACE_W / 6, FACE_W / 2 - 0.3]) for (const pz of [-DEPTH / 2 + 0.3, DEPTH / 2 - 0.3]) { const pl = new THREE.Mesh(pilarGeo, pilarMat); pl.position.set(px, hp + a2 * FH + FH / 2 + B, pz); g.add(pl); }
+    const l = new THREE.Mesh(lajeGeo, pilarMat); l.position.y = hp + (a2 + 1) * FH + B; g.add(l);
+  }
+  // letreiro no alto da fachada
   const tex = canvasTex(1024, 220, (c) => {
     c.fillStyle = '#1B2140'; c.beginPath(); c.roundRect(0, 0, 1024, 220, 30); c.fill();
     c.strokeStyle = '#E3A85A'; c.lineWidth = 10; c.beginPath(); c.roundRect(12, 12, 1000, 196, 22); c.stroke();
@@ -346,14 +363,13 @@ function montarSimba(scene: THREE.Scene, colisores: Caixa[], B: number) {
     c.font = '900 92px Archivo, sans-serif'; c.fillText('Edifício Simba', 512, 92);
     c.fillStyle = '#E3A85A'; c.font = '800 38px Archivo, sans-serif'; c.fillText('em homenagem ao gatinho Simba', 512, 164);
   });
-  const placa = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 0.99), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }));
-  placa.position.set(cx, B + h + 0.85, zf + 0.05); g.add(placa);
-  add(new THREE.BoxGeometry(0.12, 0.6, 0.12), lamb('#5B5F6E'), -1.8, h + 0.3, cz + d / 2 - 0.1);
-  add(new THREE.BoxGeometry(0.12, 0.6, 0.12), lamb('#5B5F6E'), 1.8, h + 0.3, cz + d / 2 - 0.1);
-  // plaquinha do morador
-  const sp = plaquinha('@' + SIMBA_MORADOR); sp.position.set(cx + jx, B + jy - WIN_H / 2 - 0.26, zf + 0.42); g.add(sp);
-  colisores.push({ x0: cx - w / 2, x1: cx + w / 2, z0: cz - d / 2, z1: cz + d / 2 });
-  return { vitor, gato, rabo };
+  const placa = new THREE.Mesh(new THREE.PlaneGeometry(9, 1.93), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }));
+  placa.position.set(0, hp + B + 1.2, DEPTH / 2 + 0.45); g.add(placa);
+  // estátua do Simba na calçada, perto da entrada
+  const est = gatinho(); est.gato.scale.setScalar(4.2); est.gato.position.set(FACE_W / 2 + 1.6, B + 0.6, DEPTH / 2 + 1.6); est.gato.rotation.y = -0.5; g.add(est.gato);
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.5, 0.6, 20), lamb('#CFC8BA')); base.position.set(FACE_W / 2 + 1.9, B + 0.3, DEPTH / 2 + 1.6); g.add(base);
+  colisores.push({ x0: SIMBA.x - FACE_W / 2 - 4, x1: SIMBA.x + FACE_W / 2, z0: SIMBA.z - DEPTH / 2 - 4, z1: SIMBA.z + DEPTH / 2 });
+  return { g, janelas, corpo, rabo: est.rabo, pisca: b.pisca, hp };
 }
 
 function moverCarros(carros: Carros, dt: number) {
@@ -461,6 +477,8 @@ export default function Building({
   acenar?: React.MutableRefObject<boolean>; onPerto?: (handle: string | null) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const [deperto, setDeperto] = useState(false);
+  const voltarRef = useRef<(() => void) | null>(null);
   const trocarRotulos = useRef<((t: boolean) => void) | null>(null);
   const todosRef = useRef(todos); todosRef.current = todos;
   useEffect(() => { trocarRotulos.current?.(todos); }, [todos]);
@@ -470,7 +488,7 @@ export default function Building({
     let vivo = true;
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, window.innerWidth < 860 ? 1.5 : 2));
     renderer.setSize(el.clientWidth, el.clientHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
@@ -531,7 +549,12 @@ export default function Building({
     }
     predio.add(janelas, parapeito);
     const padaria = montarPadaria(predio);
-    const simba = montarSimba(scene, colisores, B);
+    let simba: ReturnType<typeof montarTorreSimba> | null = null;
+    fetch('/api/simba').then((r) => (r.ok ? r.json() : [])).then((lista: Janela[]) => {
+      if (!vivo || !Array.isArray(lista)) return;
+      simba = montarTorreSimba(scene, colisores, B, lista);
+      alvosToque.push(simba.janelas, simba.corpo);
+    }).catch(() => { /* sem Simba, a cidade continua */ });
     const lat = new THREE.InstancedMesh(winGeo, new THREE.MeshBasicMaterial({ color: '#ffffff', toneMapped: false }), andaresProntos * 6);
     let k = 0;
     for (let a = 1; a <= andaresProntos; a++) for (let s = 0; s < 2; s++) for (let j = 0; j < 3; j++) {
@@ -570,7 +593,7 @@ export default function Building({
       predio.add(b.grupo); pisca = b.pisca;
       // moradores que vão sair do prédio pra passear
       fila.push(...lista.filter((x) => !foco || x[1] !== foco.handle).sort(() => Math.random() - 0.5).slice(0, 60));
-      todasJanelas = lista.filter((x) => x[0] <= total); aplicarRotulos(todosRef.current);
+      todasJanelas = lista.filter((x) => x[0] <= total); for (const j of todasJanelas) handleDe.set(j[0], j[1]); aplicarRotulos(todosRef.current);
     }).catch(() => { /* sem bonecos, o prédio continua de pé */ });
 
     // andares em obra: pilares + grua
@@ -600,29 +623,59 @@ export default function Building({
       if (!sp) { sp = plaquinha('@' + handle); const a = Math.floor((numero - 1) / U) + 1, u = ((numero - 1) % U) + 1; const p = windowPos(a, u); sp.position.set(p.x, p.y + B - WIN_H / 2 - 0.26, p.z + 0.4); placas.set(numero, sp); rotGrupo.add(sp); }
       return sp;
     };
+    // Plaquinhas só perto da câmera: criar mil de uma vez travava o celular. Longe, ninguém consegue ler mesmo.
+    const elegiveis = new Map<number, string>();
+    const tocados = new Set<number>();
+    let rotulosSujos = true;
     const aplicarRotulos = (t: boolean) => {
-      placas.forEach((sp) => (sp.visible = false));
+      elegiveis.clear();
       const fonte: [number, string][] = todasJanelas.length ? todasJanelas.map((j) => [j[0], j[1]]) : rotulos.map((m) => [m.numero, m.handle]);
-      for (const [n, h] of fonte.slice(-1500)) {
+      for (const [n, h] of fonte) {
         if (foco && h === foco.handle) continue;
-        const mostra = t || destaque.has(n) || (novosAcima !== undefined && n > novosAcima);
-        if (mostra) placaDe(n, h).visible = true;
+        if (t || destaque.has(n) || tocados.has(n) || (novosAcima !== undefined && n > novosAcima)) elegiveis.set(n, h);
       }
+      rotulosSujos = true;
+    };
+    const handleDe = new Map<number, string>();
+    const RAIO = 48, MAX_VIS = 140, CRIA_POR_VEZ = 10;
+    const atualizarRotulos = () => {
+      const c = camera.position; const perto: [number, number][] = [];
+      elegiveis.forEach((_, n) => {
+        const a = Math.floor((n - 1) / U) + 1, u = ((n - 1) % U) + 1;
+        const x = -FACE_W / 2 + GAP + (u - 1) * (WIN_W + GAP) + WIN_W / 2, y = (a - 1) * FH + FH * 0.55 + B, z = DEPTH / 2;
+        const d2 = (x - c.x) ** 2 + (y - c.y) ** 2 + (z - c.z) ** 2;
+        if (d2 < RAIO * RAIO) perto.push([d2, n]);
+      });
+      perto.sort((p, q) => p[0] - q[0]);
+      const quer = new Set<number>(); let criados = 0;
+      for (const [, n] of perto.slice(0, MAX_VIS)) {
+        if (!placas.has(n)) { if (criados >= CRIA_POR_VEZ) continue; criados++; }
+        quer.add(n); placaDe(n, elegiveis.get(n)!).visible = true;
+      }
+      placas.forEach((sp, n) => { if (!quer.has(n)) sp.visible = false; });
+      // não deixa acumular imagem na memória
+      if (placas.size > 500) placas.forEach((sp, n) => { if (!sp.visible && placas.size > 400) { rotGrupo.remove(sp); sp.material.map?.dispose(); sp.material.dispose(); placas.delete(n); } });
+      rotulosSujos = criados >= CRIA_POR_VEZ;
     };
     trocarRotulos.current = aplicarRotulos;
     aplicarRotulos(todosRef.current);
     let beacon: THREE.Mesh | null = null;
+    const noSimba = foco?.predio === 'simba';
+    const NF = new THREE.Vector3(0, 0, noSimba ? -1 : 1), DIR = new THREE.Vector3(noSimba ? -1 : 1, 0, 0); // frente e direita da fachada
+    const janelaFoco = () => { const p = windowPos(foco!.andar, foco!.unidade); return noSimba ? simbaMundo(p) : p; };
+    const em = (p: THREE.Vector3, dir: number, frente: number, cima = 0) => p.clone().addScaledVector(DIR, dir).addScaledVector(NF, frente).add(new THREE.Vector3(0, cima, 0));
     if (foco) {
-      const s = textSprite('@' + foco.handle, true); const p = windowPos(foco.andar, foco.unidade);
-      s.position.set(p.x, p.y + B + 1.65, p.z + 0.7); scene.add(s);
+      const s = textSprite('@' + foco.handle, true); const p = janelaFoco();
+      s.position.copy(em(p, 0, 0.7, B + 1.65)); scene.add(s);
       beacon = new THREE.Mesh(new THREE.RingGeometry(1.15, 1.45, 40), new THREE.MeshBasicMaterial({ color: COLS.grua, transparent: true, toneMapped: false }));
-      beacon.position.set(p.x, p.y + B, p.z + 0.05); scene.add(beacon);
+      beacon.position.copy(em(p, 0, 0.05, B)); if (noSimba) beacon.rotation.y = Math.PI; scene.add(beacon);
     }
 
     // câmera
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true; controls.screenSpacePanning = true; controls.maxPolarAngle = Math.PI * 0.53;
-    controls.minDistance = 4; controls.maxDistance = 300 + H * 3;
+    controls.zoomToCursor = true; controls.zoomSpeed = 1.3;
+    controls.minDistance = 2.5; controls.maxDistance = 300 + H * 3;
     const visaoGeral = () => {
       const alvo = new THREE.Vector3(0, H * 0.5, 0);
       const fit = (H * 0.5 + 6) / Math.tan(THREE.MathUtils.degToRad(21)) / Math.max(0.6, visivel) * (el.clientHeight > el.clientWidth ? 1.05 : 0.95);
@@ -633,17 +686,52 @@ export default function Building({
     let inicio = { pos: new THREE.Vector3(g.pos.x * 0.6, 4, g.pos.z * 0.5), alvo: new THREE.Vector3(0, 3, 0) };
     let fim = g;
     if (foco) {
-      const p = windowPos(foco.andar, foco.unidade);
-      fim = { alvo: new THREE.Vector3(p.x, p.y + B + 0.3, p.z), pos: new THREE.Vector3(p.x + 4.5, p.y + B + 1.6, p.z + 11 + (1 - visivel) * 8) };
-      inicio = { pos: new THREE.Vector3(p.x + 7, 3, p.z + 15), alvo: new THREE.Vector3(p.x, 3, p.z) };
+      const p = janelaFoco();
+      fim = { alvo: em(p, 0, 0, B + 0.3), pos: em(p, 4.5, 11 + (1 - visivel) * 8, B + 1.6) };
+      inicio = { pos: em(p, 7, 15).setY(3), alvo: p.clone().setY(3) };
     }
     const dur = reduce ? 0 : foco ? Math.min(6.5, 2.2 + Math.log2(1 + foco.andar) * 0.55) : 2.6;
     camera.position.copy(dur ? inicio.pos : fim.pos); controls.target.copy(dur ? inicio.alvo : fim.alvo);
     let t0 = performance.now(); let anim = dur > 0;
     const ease = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
     renderer.domElement.addEventListener('pointerdown', () => { anim = false; });
+    // Toque rápido numa janela (ou no prédio): a câmera voa até lá. Bom pra criança, que não sabe dar zoom de pinça.
+    const ray = new THREE.Raycaster(); const ptr = new THREE.Vector2();
+    const alvosToque: THREE.Object3D[] = [janelas, corpo];
+    let toqueIni: { x: number; y: number; t: number } | null = null;
+    const pd = (e: PointerEvent) => { toqueIni = e.isPrimary ? { x: e.clientX, y: e.clientY, t: performance.now() } : null; };
+    const pu = (e: PointerEvent) => {
+      const ini = toqueIni; toqueIni = null;
+      if (!ini || naRua?.current || Math.hypot(e.clientX - ini.x, e.clientY - ini.y) > 8 || performance.now() - ini.t > 400) return;
+      const r = renderer.domElement.getBoundingClientRect();
+      ptr.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+      ray.setFromCamera(ptr, camera);
+      const hit = ray.intersectObjects(alvosToque, false)[0];
+      if (!hit) return;
+      const nrm = hit.face ? hit.face.normal.clone().transformDirection(hit.object.matrixWorld).setY(0) : new THREE.Vector3(0, 0, 1);
+      if (nrm.lengthSq() < 0.01) nrm.set(0, 0, 1); nrm.normalize();
+      const dir = new THREE.Vector3(0, 1, 0).cross(nrm);
+      let alvo: THREE.Vector3;
+      if (hit.object === janelas && hit.instanceId !== undefined) {
+        const n = hit.instanceId + 1; const a = Math.floor((n - 1) / U) + 1, u = ((n - 1) % U) + 1;
+        const p = windowPos(a, u); alvo = new THREE.Vector3(p.x, p.y + B, p.z);
+        if (handleDe.has(n)) { tocados.add(n); elegiveis.set(n, handleDe.get(n)!); rotulosSujos = true; }
+      } else alvo = hit.point.clone();
+      const dist = Math.min(camera.position.distanceTo(alvo), 9);
+      anim = false;
+      animBase = { de: camera.position.clone(), ate: alvo.clone().addScaledVector(nrm, dist).addScaledVector(dir, dist * 0.25).add(new THREE.Vector3(0, 0.9, 0)), alvoDe: controls.target.clone(), alvoAte: alvo }; t0 = performance.now();
+    };
+    renderer.domElement.addEventListener('pointerdown', pd); renderer.domElement.addEventListener('pointerup', pu);
+    const irSimba = () => {
+      if (!simba) return; anim = false;
+      const alvo = new THREE.Vector3(SIMBA.x, B + Math.min(simba.hp, 12) * 0.5 + 1.5, SIMBA.z - DEPTH / 2);
+      animBase = { de: camera.position.clone(), ate: alvo.clone().add(new THREE.Vector3(-5, 4, -22 - Math.min(simba.hp, 40) * 0.6)), alvoDe: controls.target.clone(), alvoAte: alvo }; t0 = performance.now();
+    };
+    window.addEventListener('ir-simba', irSimba);
+    voltarRef.current = () => { anim = false; const v = foco ? fim : visaoGeral(); animBase = { de: camera.position.clone(), ate: v.pos.clone(), alvoDe: controls.target.clone(), alvoAte: v.alvo.clone() }; t0 = performance.now(); };
+    let ultimoPerto = false, ultimoCheca = 0;
 
-    let ultimoAndar = -1, raf = 0, antes = performance.now(), ultimoPisca = 0;
+    let ultimoAndar = -1, raf = 0, antes = performance.now(), ultimoPisca = 0, ultimoRot = 0;
     // modo rua: o boneco desce e anda pela cidade
     const teclas = new Set<string>();
     const kd = (e: KeyboardEvent) => { if (naRua?.current && ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(e.key.toLowerCase())) { teclas.add(e.key.toLowerCase()); e.preventDefault(); } };
@@ -659,7 +747,7 @@ export default function Building({
       if (document.hidden) { antes = now; return; }
       const dt = Math.min(0.1, (now - antes) / 1000); antes = now;
       { const ts = now / 1000; const ciclo = ts % 9; animar(padaria.neusa, !reduce && ciclo < 2.2 ? 'acenando' : 'parado', ts); padaria.aberto.opacity = reduce || Math.sin(ts * 3) > -0.6 ? 1 : 0.35;
-        animar(simba.vitor, !reduce && (ts + 4) % 11 < 2 ? 'acenando' : 'parado', ts); if (!reduce) simba.rabo.rotation.z = 0.5 + Math.sin(ts * 2.2) * 0.35; }
+        if (simba && !reduce) simba.rabo.rotation.z = 0.5 + Math.sin(ts * 2.2) * 0.35; }
       if (!reduce) for (const nv of nuvens.lista) { nv.s.position.x += nv.v * dt; if (nv.s.position.x > nuvens.lim) nv.s.position.x = -nuvens.lim; }
       if (anim) {
         const x = Math.min(1, (now - t0) / 1000 / dur); const e = ease(x);
@@ -669,20 +757,20 @@ export default function Building({
       // entra e sai do modo rua
       if (naRua?.current && !jogador && foco) {
         const c = corpoInteiro(foco.handle, visualFoco);
-        const p = windowPos(foco.andar, foco.unidade);
-        c.g.position.set(Math.max(-5, Math.min(5, p.x)), B, DEPTH / 2 + 2.2);
+        const pl = windowPos(foco.andar, foco.unidade); const rua = new THREE.Vector3(Math.max(-5, Math.min(5, pl.x)), B, DEPTH / 2 + 2.2);
+        c.g.position.copy(noSimba ? simbaMundo(rua) : rua); if (noSimba) c.g.rotation.y = Math.PI;
         const nome = textSprite('@' + foco.handle, true); nome.scale.multiplyScalar(0.5); scene.add(nome);
         scene.add(c.g); jogador = { c, nome, acenaAte: 0, falaAte: 0 };
         const b2 = c;
         if (beacon) beacon.visible = false;
         anim = false; controls.minDistance = 3; controls.maxDistance = 30; controls.maxPolarAngle = Math.PI * 0.47;
         const alvo = b2.g.position.clone().add(new THREE.Vector3(0, 1.4, 0));
-        animBase = { de: camera.position.clone(), ate: alvo.clone().add(new THREE.Vector3(2.5, 3.2, 8)), alvoDe: controls.target.clone(), alvoAte: alvo }; t0 = now;
+        animBase = { de: camera.position.clone(), ate: em(alvo, 2.5, 8, 3.2), alvoDe: controls.target.clone(), alvoAte: alvo }; t0 = now;
       }
       if (!naRua?.current && jogador) {
         scene.remove(jogador.c.g, jogador.nome); if (jogador.fala) scene.remove(jogador.fala); jogador = null; teclas.clear(); onPerto?.(null); pertoAtual = null;
         if (beacon) beacon.visible = true;
-        controls.minDistance = 4; controls.maxDistance = 300 + H * 3; controls.maxPolarAngle = Math.PI * 0.53;
+        controls.minDistance = 2.5; controls.maxDistance = 300 + H * 3; controls.maxPolarAngle = Math.PI * 0.53;
         animBase = { de: camera.position.clone(), ate: fim.pos.clone(), alvoDe: controls.target.clone(), alvoAte: fim.alvo.clone() }; t0 = now;
       }
       if (animBase) {
@@ -723,6 +811,8 @@ export default function Building({
         if (jogador.fala) { jogador.fala.position.copy(jogador.c.g.position).add(new THREE.Vector3(0, 3.05, 0)); if (now > jogador.falaAte) { scene.remove(jogador.fala); jogador.fala = undefined; } }
       }
       controls.update();
+      if (rotulosSujos || now - ultimoRot > 200) { ultimoRot = now; atualizarRotulos(); }
+      if (now - ultimoCheca > 500) { ultimoCheca = now; const p = !jogador && !anim && camera.position.distanceTo(fim.pos) > Math.max(20, fim.pos.distanceTo(fim.alvo) * 0.2); if (p !== ultimoPerto) { ultimoPerto = p; setDeperto(p); } }
       const andar = jogador ? 0 : foco
         ? Math.max(0, Math.min(andaresProntos, Math.round(controls.target.y / FH + 0.3)))
         : Math.round(andaresProntos * (dur ? ease(Math.min(1, (now - t0) / 1000 / dur)) : 1));
@@ -792,12 +882,17 @@ export default function Building({
     const onResize = () => { ajustarOffset(); renderer.setSize(el.clientWidth, el.clientHeight); };
     window.addEventListener('resize', onResize);
     return () => {
-      vivo = false; trocarRotulos.current = null; window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku);
+      vivo = false; trocarRotulos.current = null; window.removeEventListener('ir-simba', irSimba); window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku);
       cancelAnimationFrame(raf); window.removeEventListener('resize', onResize); controls.dispose();
       scene.traverse((o) => { const m = o as THREE.Mesh; m.geometry?.dispose?.(); const mat = m.material as THREE.Material | THREE.Material[] | undefined; (Array.isArray(mat) ? mat : mat ? [mat] : []).forEach((x) => x.dispose()); });
       renderer.dispose(); el.removeChild(renderer.domElement);
     };
   }, [ocupados, foco?.handle, foco?.andar, foco?.unidade, rotulos.map((r) => r.handle).join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return <div ref={ref} className="cena" aria-label="Prédio em 3D numa cidade: cada janela acesa tem o boneco de um morador" role="img" />;
+  return (
+    <>
+      <div ref={ref} className="cena" aria-label="Prédio em 3D numa cidade: cada janela acesa tem o boneco de um morador. Toque numa janela pra ver de perto." role="img" />
+      {deperto && <button type="button" className="ver-tudo" onClick={() => voltarRef.current?.()}>{foco ? '🏠 Voltar pro meu apê' : '🏢 Ver o prédio todo'}</button>}
+    </>
+  );
 }

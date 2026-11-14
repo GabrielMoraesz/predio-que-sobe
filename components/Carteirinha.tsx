@@ -6,7 +6,7 @@ export default function Carteirinha({ m }: { m: Morador }) {
   return (
     <article className="carteirinha" aria-label={`Carteirinha de morador de ${rotulo(m)}`}>
       <header>
-        <span className="edificio">{PREDIO.edificio}</span>
+        <span className="edificio">{m.predio === 'simba' ? 'Edifício Simba' : PREDIO.edificio}</span>
         <span className="tipo">Carteirinha de morador</span>
       </header>
       <div className="corpo">

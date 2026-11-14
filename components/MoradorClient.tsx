@@ -37,7 +37,7 @@ export default function MoradorClient({ m, viz, ocupados }: { m: Morador; viz: M
 
   return (
     <main className="tela">
-      <Building ocupados={ocupados} foco={{ andar: m.andar, unidade: m.unidade, handle: m.handle }} rotulos={viz} onAndar={setAndar} naRua={naRua} joystick={joystick} visualFoco={m.visual} acenar={acenar} onPerto={setPerto} todos={todos} />
+      <Building ocupados={ocupados} foco={{ andar: m.andar, unidade: m.unidade, handle: m.handle, predio: m.predio }} rotulos={m.predio === 'simba' ? [] : viz} onAndar={setAndar} naRua={naRua} joystick={joystick} visualFoco={m.visual} acenar={acenar} onPerto={setPerto} todos={todos} />
       {!rua && <Link href={`/loja?u=${m.handle}`} className="topo-loja"><span aria-hidden>👑</span> Personalizar</Link>}
       {!rua && <button type="button" className="todos-arrobas" aria-pressed={todos} onClick={() => setTodos((t) => !t)}>{todos ? 'Mostrar só os vizinhos' : 'Mostrar todos os @'}</button>}
       {rua && (

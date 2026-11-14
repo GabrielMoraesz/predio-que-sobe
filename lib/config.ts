@@ -18,12 +18,13 @@ export type Morador = {
   andar: number;
   unidade: number;
   apto: number;
+  predio?: 'principal' | 'simba';
   criado_em: string;
   relacao?: 'porta_esquerda' | 'porta_direita' | 'de_cima' | 'de_baixo';
   visual?: Partial<Visual> | null;
 };
 
-export type Estatisticas = { moradores: number; ultimo_numero: number; recentes: Morador[]; na_fila?: number; ultimo_censo?: { rodado_em: string; novos: number } | null };
+export type Estatisticas = { moradores: number; ultimo_numero: number; recentes: Morador[]; na_fila?: number; ultimo_censo?: { rodado_em: string; novos: number } | null; simba?: { moradores: number; ultimo: number } };
 
 // O síndico é o dono do perfil: o boneco dele é a caveira de moletom.
 export const SINDICO = 'paulimsortudo';

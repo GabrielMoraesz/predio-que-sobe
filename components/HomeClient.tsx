@@ -49,6 +49,7 @@ export default function HomeClient({ stats }: { stats: Estatisticas }) {
     <main className="tela">
       <Building ocupados={stats.ultimo_numero} rotulos={novosAcima === undefined ? stats.recentes : []} novosAcima={novosAcima} todos={todos} onAndar={setAndar} />
       <Link href="/loja" className="topo-loja"><span aria-hidden>👑</span> Personalizar</Link>
+      <button type="button" className="topo-simba" onClick={() => window.dispatchEvent(new Event('ir-simba'))}><span aria-hidden>🐾</span> Edifício Simba</button>
       <button type="button" className="todos-arrobas" aria-pressed={todos} onClick={() => setTodos((t) => !t)}>{todos ? 'Mostrar só os novos' : 'Mostrar todos os @'}</button>
       <Elevador andar={andar} subindo={false} />
       <section className="painel" aria-labelledby="titulo">

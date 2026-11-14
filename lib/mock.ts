@@ -12,7 +12,9 @@ export const mockClient = {
     const ok = (data: unknown) => ({ data, error: null });
     switch (fn) {
       case 'estatisticas': return ok({ moradores: N, ultimo_numero: N, na_fila: 7, ultimo_censo: { rodado_em: new Date().toISOString(), novos: 12 }, recentes: Array.from({ length: 12 }, (_, i) => apto(N - i, nome(N - i))) });
-      case 'buscar_morador': return ok(a.p_handle === 'ninguem' ? null : { ...apto(a.p_handle === 'paulimsortudo' ? 1 : 42, a.p_handle), visual: a.p_handle === 'teste.um' ? { cabeca: 'coroa', janela: 'caramelo', luz: 'neon_rosa' } : {} });
+      case 'janelas_simba': return ok([[1, 'vitorcosta47', {}], [2, 'ana.lu2', visual(2)], [3, 'rafa.dev3', visual(4)]]);
+      case 'buscar_morador': if (a.p_handle === 'vitorcosta47') return ok({ ...apto(1, 'vitorcosta47'), numero: 3986, predio: 'simba', visual: {} });
+        return ok(a.p_handle === 'ninguem' ? null : { ...apto(a.p_handle === 'paulimsortudo' ? 1 : 42, a.p_handle), visual: a.p_handle === 'teste.um' ? { cabeca: 'coroa', janela: 'caramelo', luz: 'neon_rosa' } : {} });
       case 'vizinhos': return ok([[a.p_numero - 1, 'porta_esquerda'], [a.p_numero + 1, 'porta_direita'], [a.p_numero + 8, 'de_cima'], [a.p_numero - 8, 'de_baixo']].map(([n, r]) => ({ ...apto(n as number, nome(n as number)), relacao: r })));
       case 'janelas': return ok(Array.from({ length: N }, (_, i) => [i + 1, nome(i + 1), visual(i + 1)]).filter((x) => x[0] !== 2));
       case 'catalogo': return ok(ITENS);
