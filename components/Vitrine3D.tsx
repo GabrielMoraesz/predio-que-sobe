@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
-import { animar, corpoInteiro, type Corpo } from '@/lib/boneco3d';
+import { animar, corpoInteiro, dourar, type Corpo } from '@/lib/boneco3d';
 import { LUZ_COR, visualDe, type Visual } from '@/lib/visual';
 
 // Vitrine: o boneco de corpo inteiro girando num pedestal, na frente da janela dele. Arraste pra girar.
@@ -37,7 +37,7 @@ export default function Vitrine3D({ handle, visual, perto = false }: { handle: s
     let corpo: Corpo | null = null; let acenaAte = 0;
     trocar.current = (v) => {
       if (corpo) scene.remove(corpo.g);
-      corpo = corpoInteiro(handle, v, 0.8); scene.add(corpo.g);
+      corpo = corpoInteiro(handle, v, 0.8); if (v?.fama) dourar(corpo); scene.add(corpo.g);
       extras.clear();
       const vis = visualDe(handle, v);
       (vidro.material as THREE.MeshBasicMaterial).color.set(vis.luz && vis.luz !== 'pisca_pisca' ? LUZ_COR[vis.luz] : '#FFD36E');

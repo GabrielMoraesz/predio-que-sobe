@@ -421,5 +421,12 @@ button:disabled { opacity: .6; cursor: progress; }
 .ver-tudo { position: fixed; z-index: 6; left: 50%; transform: translateX(-50%); top: calc(max(14px, env(safe-area-inset-top)) + 4px); font: inherit; font-weight: 900; font-size: 1rem; padding: 12px 20px; border-radius: 999px; border: 2px solid var(--tinta); background: #fff; color: var(--tinta); box-shadow: 0 4px 0 var(--tinta); cursor: pointer; white-space: nowrap; }
 .ver-tudo:active { transform: translate(-50%, 3px); box-shadow: 0 1px 0 var(--tinta); }
 @media (max-width: 859px) { .ver-tudo { top: auto; bottom: calc(min(64vh, 60%) + 12px); } }
-.topo-simba { position: fixed; z-index: 6; top: calc(max(14px, env(safe-area-inset-top)) + 106px); right: 14px; display: inline-flex; align-items: center; gap: 6px; font: inherit; font-weight: 900; font-size: .95rem; padding: 10px 16px; border-radius: 999px; color: #FFE7B8; background: #1B2140; border: 2px solid #E3A85A; box-shadow: 0 4px 0 var(--tinta); cursor: pointer; }
+.topo-simba { position: fixed; z-index: 6; top: calc(max(14px, env(safe-area-inset-top)) + 160px); right: 14px; display: inline-flex; align-items: center; gap: 6px; font: inherit; font-weight: 900; font-size: .95rem; padding: 10px 16px; border-radius: 999px; color: #FFE7B8; background: #1B2140; border: 2px solid #E3A85A; box-shadow: 0 4px 0 var(--tinta); cursor: pointer; }
 .topo-simba:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--tinta); }
+.topo-fama { position: fixed; z-index: 6; top: calc(max(14px, env(safe-area-inset-top)) + 106px); right: 14px; display: inline-flex; align-items: center; gap: 6px; font: inherit; font-weight: 900; font-size: .95rem; padding: 10px 16px; border-radius: 999px; color: #1B2140; background: linear-gradient(180deg, #FFE69A, #E0A92E); border: 2px solid var(--tinta); box-shadow: 0 4px 0 var(--tinta), 0 0 18px rgba(247,197,49,.55); cursor: pointer; }
+.topo-fama:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--tinta); }
+.banner-fama { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; font: inherit; color: #1B2140; cursor: pointer; margin: 0 0 12px; padding: 12px 14px; border-radius: 18px; border: 2px solid #F7C531; background: linear-gradient(120deg, #FFE69A, #E0A92E); box-shadow: 0 0 22px rgba(247,197,49,.35); }
+.banner-fama > span:first-child { font-size: 2.2rem; }
+.banner-fama strong { display: block; font-size: 1.05rem; }
+.banner-fama small { display: block; font-size: .85rem; font-weight: 700; color: #3B2A08; }
+.banner-fama .preco { margin-left: auto; font-family: 'DSEG7', monospace; font-weight: 700; white-space: nowrap; }

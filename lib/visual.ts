@@ -1,9 +1,9 @@
 // Aparência do boneco: pele e gênero são grátis; cabelo, camisa e itens da loja entram no Pix.
 export type Visual = {
   pele: number; genero: number; cabelo: number; corCabelo: number; camisa: number;
-  cabeca?: string; rosto?: string; roupa?: string; janela?: string; luz?: string;
+  cabeca?: string; rosto?: string; roupa?: string; janela?: string; luz?: string; fama?: string;
 };
-export type Slot = 'cabeca' | 'rosto' | 'roupa' | 'janela' | 'luz';
+export type Slot = 'cabeca' | 'rosto' | 'roupa' | 'janela' | 'luz' | 'fama';
 export type Raridade = 'comum' | 'raro' | 'epico' | 'lendario';
 export type Item = { id: string; nome: string; slot: Slot; preco: number; raro: boolean; raridade?: Raridade; desc?: string | null };
 export const RARIDADES: Record<Raridade, { nome: string; cor: string; ordem: number }> = {
@@ -20,7 +20,7 @@ export const CAMISAS = ['#2B63B0', '#B5533C', '#F7C531', '#2F8F6B', '#7A4FB8', '
 export const ROUPA_COR: Record<string, string> = { camisa_amarela: '#F7D23E', terno: '#22283F' };
 export const LUZ_COR: Record<string, string> = { neon_rosa: '#FF5FB0', neon_azul: '#4FC3FF', pisca_pisca: '#FFD36E' };
 export const SLOTS: { id: Slot; nome: string }[] = [
-  { id: 'cabeca', nome: 'Cabeça' }, { id: 'rosto', nome: 'Rosto' }, { id: 'roupa', nome: 'Roupa' }, { id: 'janela', nome: 'Janela' }, { id: 'luz', nome: 'Luz' },
+  { id: 'cabeca', nome: 'Cabeça' }, { id: 'rosto', nome: 'Rosto' }, { id: 'roupa', nome: 'Roupa' }, { id: 'janela', nome: 'Janela' }, { id: 'luz', nome: 'Luz' }, { id: 'fama', nome: 'Hall da Fama' },
 ];
 
 export function hashStr(s: string) {

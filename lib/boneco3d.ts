@@ -224,3 +224,11 @@ export function animar(c: Corpo, estado: 'parado' | 'andando' | 'acenando' | 'co
   else if (estado === 'conversando') { P.bracoD.rotation.z *= 0.8; P.bracoD.rotation.x = -0.5 - Math.sin(t * 5) * 0.35; P.bracoE.rotation.x = -0.2 + Math.sin(t * 4 + 1) * 0.15; }
   else { P.bracoD.rotation.z *= 0.8; P.bracoD.rotation.x *= 0.8; }
 }
+
+// Estátua de ouro (Hall da Fama): troca todos os materiais do boneco por ouro polido.
+let OURO: THREE.MeshStandardMaterial | null = null;
+export function dourar(c: Corpo) {
+  OURO ||= new THREE.MeshStandardMaterial({ color: '#F2C14E', metalness: 0.85, roughness: 0.28, emissive: '#7A5200', emissiveIntensity: 0.55 });
+  c.g.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh && m.material) m.material = OURO!; });
+  return c;
+}

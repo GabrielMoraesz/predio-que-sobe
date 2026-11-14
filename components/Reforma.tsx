@@ -19,11 +19,11 @@ const ERROS: Record<string, string> = {
 };
 const TAXA_TROCA = 100;
 const PAGOS = ['cabelo', 'corCabelo', 'camisa', ...SLOTS.map((s) => s.id)] as const;
-const ICONE: Record<Aba, string> = { visual: '✂️', cabeca: '🧢', rosto: '🕶️', roupa: '👔', janela: '🐈', luz: '💡' };
+const ICONE: Record<Aba, string> = { visual: '✂️', cabeca: '🧢', rosto: '🕶️', roupa: '👔', janela: '🐈', luz: '💡', fama: '🏆' };
 const ICONE_ITEM: Record<string, string> = {
   bone_laranja: '🧢', capacete_obra: '⛑️', chapeu_palha: '👒', fone: '🎧', coroa: '👑',
   oculos_escuros: '🕶️', oculos_redondos: '👓', bigode: '🥸', camisa_amarela: '👕', terno: '🤵',
-  planta: '🪴', gato: '🐈', caramelo: '🐕', neon_rosa: '🩷', neon_azul: '💙', pisca_pisca: '🎄',
+  planta: '🪴', gato: '🐈', caramelo: '🐕', neon_rosa: '🩷', neon_azul: '💙', pisca_pisca: '🎄', hall_fama: '🏆',
 };
 
 const DUVIDAS: [string, string][] = [
@@ -181,6 +181,13 @@ export default function Reforma({ itens, inicial }: { itens: Item[]; inicial?: M
 
         <section className="ordem" aria-labelledby="ordem-t">
           <h2 id="ordem-t" className="sr">Itens da loja</h2>
+          {porId['hall_fama'] && !meus.has('hall_fama') && aba !== 'fama' && (
+            <button type="button" className="banner-fama" onClick={() => { setAba('fama'); if (v.fama !== 'hall_fama') provar('fama', 'hall_fama'); }}>
+              <span aria-hidden>🏆</span>
+              <span><strong>Hall da Fama</strong><small>Seu boneco vira estátua de ouro com o seu @ na entrada do prédio. Pra sempre.</small></span>
+              <span className="preco">{reais(porId['hall_fama'].preco)}</span>
+            </button>
+          )}
           <div className="abas escuras" role="tablist" aria-label="Categorias">
             {SLOTS.map((s) => {
               const n = v[s.id] && !meus.has(v[s.id]!) ? 1 : 0;

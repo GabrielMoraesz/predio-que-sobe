@@ -5,7 +5,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { PREDIO, type Morador, rotulo } from '@/lib/config';
 import { LUZ_COR, visualDe, type Visual } from '@/lib/visual';
-import { animar, corpoInteiro, pecas, registro, type Corpo } from '@/lib/boneco3d';
+import { animar, corpoInteiro, dourar, pecas, registro, type Corpo } from '@/lib/boneco3d';
 
 const U = PREDIO.aptosPorAndar;
 const WIN_W = 1.25, WIN_H = 1.45, GAP = 0.65, FH = 2.7;
@@ -372,6 +372,64 @@ function montarTorreSimba(scene: THREE.Scene, colisores: Caixa[], B: number, lis
   return { g, janelas, corpo, rabo: est.rabo, pisca: b.pisca, hp };
 }
 
+
+// Hall da Fama: tapete vermelho da porta até a calçada, arco dourado e estátuas de ouro de quem comprou, em pedestais dos dois lados.
+const FAMA_LUGARES: [number, number][] = (() => {
+  const L: [number, number][] = [];
+  for (const z of [10.6, 8.2]) for (let k = 0; k < 6; k++) for (const lado of [1, -1]) L.push([lado * (3.3 + k * 2.3), z]);
+  return L;
+})();
+function montarHallFama(scene: THREE.Scene, colisores: Caixa[], B: number, donos: [string, Partial<Visual> | null][]) {
+  const g = new THREE.Group(); scene.add(g);
+  const ouro = new THREE.MeshStandardMaterial({ color: '#F2C14E', metalness: 0.85, roughness: 0.28, emissive: '#7A5200', emissiveIntensity: 0.55 });
+  const marmore = new THREE.MeshLambertMaterial({ color: '#1B2140' });
+  // tapete vermelho
+  const tapete = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 15.5 - DEPTH / 2), new THREE.MeshLambertMaterial({ color: '#B3202A' }));
+  tapete.rotation.x = -Math.PI / 2; tapete.position.set(0, B + 0.02, (DEPTH / 2 + 15.5) / 2); g.add(tapete);
+  // arco
+  for (const x of [-1.9, 1.9]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.42, 4.4, 0.42), ouro); p.position.set(x, B + 2.2, 13.2); g.add(p); colisores.push({ x0: x - 0.3, x1: x + 0.3, z0: 12.9, z1: 13.5 }); }
+  const tex = canvasTex(1024, 256, (c) => {
+    const gr = c.createLinearGradient(0, 0, 0, 256); gr.addColorStop(0, '#FFE69A'); gr.addColorStop(1, '#C8901E');
+    c.fillStyle = gr; c.beginPath(); c.roundRect(0, 0, 1024, 256, 40); c.fill();
+    c.fillStyle = '#1B2140'; c.beginPath(); c.roundRect(14, 14, 996, 228, 30); c.fill();
+    const estrela = (x: number, y: number, r: number) => { c.fillStyle = '#F2C14E'; c.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r; c.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } c.closePath(); c.fill(); };
+    estrela(110, 128, 54); estrela(914, 128, 54);
+    c.fillStyle = '#FFE69A'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = '900 120px Archivo, sans-serif'; c.fillText('HALL DA FAMA', 512, 134);
+  });
+  const placa = new THREE.Mesh(new THREE.BoxGeometry(5.4, 1.35, 0.25), [ouro, ouro, ouro, ouro, new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }), ouro]);
+  placa.position.set(0, B + 4.9, 13.2); g.add(placa);
+  // pedestais e estátuas
+  const placaNome = (texto: string, vazio: boolean) => canvasTex(512, 160, (c) => {
+    c.fillStyle = vazio ? '#2A3160' : '#0E1330'; c.fillRect(0, 0, 512, 160);
+    c.fillStyle = '#F2C14E'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    let fs = 64; c.font = `900 ${fs}px Archivo, sans-serif`; while (c.measureText(texto).width > 470 && fs > 26) { fs -= 2; c.font = `900 ${fs}px Archivo, sans-serif`; }
+    c.fillText(texto, 256, vazio ? 58 : 80);
+    if (vazio) { c.font = '800 34px Archivo, sans-serif'; c.fillStyle = '#FFE69A'; c.fillText('R$ 19,99 na loja', 256, 118); }
+  });
+  const pedGeo = new THREE.BoxGeometry(1.5, 0.95, 1.5), bordaGeo = new THREE.BoxGeometry(1.62, 0.1, 1.62), plGeo = new THREE.PlaneGeometry(1.36, 0.43);
+  const estatuas: Corpo[] = [];
+  const vazios = Math.min(2, FAMA_LUGARES.length - donos.length);
+  FAMA_LUGARES.slice(0, Math.min(FAMA_LUGARES.length, donos.length + vazios)).forEach(([x, z], i) => {
+    const dono = donos[i];
+    const ped = new THREE.Mesh(pedGeo, marmore); ped.position.set(x, B + 0.475, z); g.add(ped);
+    const borda = new THREE.Mesh(bordaGeo, ouro); borda.position.set(x, B + 0.97, z); g.add(borda);
+    const pl = new THREE.Mesh(plGeo, new THREE.MeshBasicMaterial({ map: placaNome(dono ? '@' + dono[0] : 'Seu lugar aqui', !dono), toneMapped: false }));
+    pl.position.set(x, B + 0.5, z + 0.76); g.add(pl);
+    colisores.push({ x0: x - 0.8, x1: x + 0.8, z0: z - 0.8, z1: z + 0.8 });
+    if (dono) {
+      const c = dourar(corpoInteiro(dono[0], dono[1], 0.62)); c.g.children[1].visible = false;
+      c.g.position.set(x, B + 1.02, z); c.g.rotation.y = -x * 0.03; g.add(c.g); estatuas.push(c);
+      animar(c, 'acenando', 0.4);
+    } else {
+      const fant = corpoInteiro('seu.lugar', { pele: 0, genero: 0, cabelo: 1, corCabelo: 0, camisa: 0 }, 0.62); fant.g.children[1].visible = false;
+      const vid = new THREE.MeshBasicMaterial({ color: '#F2C14E', transparent: true, opacity: 0.22, depthWrite: false });
+      fant.g.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) m.material = vid; });
+      fant.g.position.set(x, B + 1.02, z); g.add(fant.g);
+    }
+  });
+  return { g, estatuas };
+}
+
 function moverCarros(carros: Carros, dt: number) {
   carros.mesh.count = 0; carros.teto.count = 0;
   for (const c of carros.dados) {
@@ -549,6 +607,11 @@ export default function Building({
     }
     predio.add(janelas, parapeito);
     const padaria = montarPadaria(predio);
+    let fama: ReturnType<typeof montarHallFama> | null = null;
+    fetch('/api/fama').then((r) => (r.ok ? r.json() : [])).then((donos: [string, Partial<Visual> | null][]) => {
+      if (!vivo || !Array.isArray(donos)) return;
+      fama = montarHallFama(scene, colisores, B, donos);
+    }).catch(() => { /* sem Hall da Fama por enquanto */ });
     let simba: ReturnType<typeof montarTorreSimba> | null = null;
     fetch('/api/simba').then((r) => (r.ok ? r.json() : [])).then((lista: Janela[]) => {
       if (!vivo || !Array.isArray(lista)) return;
@@ -728,6 +791,11 @@ export default function Building({
       animBase = { de: camera.position.clone(), ate: alvo.clone().add(new THREE.Vector3(-5, 4, -22 - Math.min(simba.hp, 40) * 0.6)), alvoDe: controls.target.clone(), alvoAte: alvo }; t0 = performance.now();
     };
     window.addEventListener('ir-simba', irSimba);
+    const irFama = () => {
+      anim = false; const alvo = new THREE.Vector3(0, B + 1.6, 9.4);
+      animBase = { de: camera.position.clone(), ate: new THREE.Vector3(4.5, B + 3.4, 17.6), alvoDe: controls.target.clone(), alvoAte: alvo }; t0 = performance.now();
+    };
+    window.addEventListener('ir-fama', irFama);
     voltarRef.current = () => { anim = false; const v = foco ? fim : visaoGeral(); animBase = { de: camera.position.clone(), ate: v.pos.clone(), alvoDe: controls.target.clone(), alvoAte: v.alvo.clone() }; t0 = performance.now(); };
     let ultimoPerto = false, ultimoCheca = 0;
 
@@ -747,6 +815,7 @@ export default function Building({
       if (document.hidden) { antes = now; return; }
       const dt = Math.min(0.1, (now - antes) / 1000); antes = now;
       { const ts = now / 1000; const ciclo = ts % 9; animar(padaria.neusa, !reduce && ciclo < 2.2 ? 'acenando' : 'parado', ts); padaria.aberto.opacity = reduce || Math.sin(ts * 3) > -0.6 ? 1 : 0.35;
+        if (fama && !reduce) fama.estatuas.forEach((c, i) => animar(c, (ts + i * 1.7) % 8 < 2.5 ? 'acenando' : 'parado', ts));
         if (simba && !reduce) simba.rabo.rotation.z = 0.5 + Math.sin(ts * 2.2) * 0.35; }
       if (!reduce) for (const nv of nuvens.lista) { nv.s.position.x += nv.v * dt; if (nv.s.position.x > nuvens.lim) nv.s.position.x = -nuvens.lim; }
       if (anim) {
@@ -882,7 +951,7 @@ export default function Building({
     const onResize = () => { ajustarOffset(); renderer.setSize(el.clientWidth, el.clientHeight); };
     window.addEventListener('resize', onResize);
     return () => {
-      vivo = false; trocarRotulos.current = null; window.removeEventListener('ir-simba', irSimba); window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku);
+      vivo = false; trocarRotulos.current = null; window.removeEventListener('ir-simba', irSimba); window.removeEventListener('ir-fama', irFama); window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku);
       cancelAnimationFrame(raf); window.removeEventListener('resize', onResize); controls.dispose();
       scene.traverse((o) => { const m = o as THREE.Mesh; m.geometry?.dispose?.(); const mat = m.material as THREE.Material | THREE.Material[] | undefined; (Array.isArray(mat) ? mat : mat ? [mat] : []).forEach((x) => x.dispose()); });
       renderer.dispose(); el.removeChild(renderer.domElement);
