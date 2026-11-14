@@ -135,7 +135,6 @@ function montarCidade(scene: THREE.Scene, colisores: Caixa[]): Carros {
     const cal = new THREE.Mesh(calcadaGeo, calcadaMat); cal.scale.set(36, 1, 31); cal.position.set(cx, 0.12, cz); scene.add(cal);
     if (i === 0 && j === 0) { arvore(-14, 12.5, 0.9); continue; } // lote do nosso prédio
     if (j === 1) {
-      if (i === -1) { arvore(cx - 16, cz + 13); arvore(cx + 16, cz + 13); continue; } // lote do Edifício Simba
       if (i === 0) { // praça na frente do prédio
         const g = new THREE.Mesh(new THREE.BoxGeometry(32, 0.3, 26), lamb('#5FA35C')); g.position.set(cx, 0.2, cz); scene.add(g);
         for (let t = 0; t < 14; t++) arvore(cx - 14 + rnd() * 28, cz - 11 + rnd() * 22, 0.8 + rnd() * 0.5);
@@ -164,9 +163,10 @@ function montarCidade(scene: THREE.Scene, colisores: Caixa[]): Carros {
       const parede = new THREE.MeshLambertMaterial({ color: PASTEIS[Math.floor(rnd() * PASTEIS.length)], map, emissive: '#ffffff', emissiveMap: em, emissiveIntensity: 0.9 });
       const teto = lamb('#8C8577');
       const p = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), [parede, parede, teto, teto, parede, parede]);
-      p.position.set(x0 + w / 2, h / 2 + 0.25, cz - 15 + d / 2 + rnd() * (30 - d)); scene.add(p);
-      colisores.push({ x0: p.position.x - w / 2, x1: p.position.x + w / 2, z0: p.position.z - d / 2, z1: p.position.z + d / 2 });
-      if (rnd() < 0.35) { const caixa = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.6, 2.4), lamb('#2F7FD1')); caixa.position.set(p.position.x, h + 1.1, p.position.z); scene.add(caixa); }
+      p.position.set(x0 + w / 2, h / 2 + 0.25, cz - 15 + d / 2 + rnd() * (30 - d));
+      const pula = i === 1 && j === 0 && b < 2; // o prédio azul (e o vizinho grudado) deram lugar ao Edifício Simba
+      if (!pula) { scene.add(p); colisores.push({ x0: p.position.x - w / 2, x1: p.position.x + w / 2, z0: p.position.z - d / 2, z1: p.position.z + d / 2 }); }
+      if (rnd() < 0.35 && !pula) { const caixa = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.6, 2.4), lamb('#2F7FD1')); caixa.position.set(p.position.x, h + 1.1, p.position.z); scene.add(caixa); }
       x0 += 32 / n;
     }
     if (j === 0) for (let t = 0; t < 3; t++) arvore(cx - 14 + t * 14, cz + 14);
@@ -304,9 +304,9 @@ function montarPadaria(predio: THREE.Group) {
 
 
 // Edifício Simba: segundo prédio, do outro lado da rua, igual ao principal. Homenagem ao gatinho Simba de um inscrito.
-// Fica no lote à esquerda da praça e olha pra rua (de frente pro prédio principal).
-export const SIMBA = { x: -44, z: 40 };
-const simbaMundo = (v: THREE.Vector3) => new THREE.Vector3(SIMBA.x - v.x, v.y, SIMBA.z - v.z);
+// Fica no lote ao lado do prédio principal, virado pra mesma rua.
+export const SIMBA = { x: 34.2, z: 0 };
+const simbaMundo = (v: THREE.Vector3) => new THREE.Vector3(SIMBA.x + v.x, v.y, SIMBA.z + v.z);
 function gatinho(cor = '#E3A85A', listra = '#C9733B') {
   const gato = new THREE.Group();
   const lamb = (c: string) => new THREE.MeshLambertMaterial({ color: c });
@@ -321,7 +321,7 @@ function gatinho(cor = '#E3A85A', listra = '#C9733B') {
   return { gato, rabo };
 }
 function montarTorreSimba(scene: THREE.Scene, colisores: Caixa[], B: number, lista: Janela[]) {
-  const g = new THREE.Group(); g.position.set(SIMBA.x, 0, SIMBA.z); g.rotation.y = Math.PI; scene.add(g);
+  const g = new THREE.Group(); g.position.set(SIMBA.x, 0, SIMBA.z); scene.add(g);
   const ultimo = lista.reduce((m, x) => Math.max(m, x[0]), 0);
   const prontos = Math.max(1, Math.ceil(ultimo / U)), hp = prontos * FH, total = prontos * U;
   const lamb = (c: string) => new THREE.MeshLambertMaterial({ color: c });
@@ -368,7 +368,7 @@ function montarTorreSimba(scene: THREE.Scene, colisores: Caixa[], B: number, lis
   // estátua do Simba na calçada, perto da entrada
   const est = gatinho(); est.gato.scale.setScalar(4.2); est.gato.position.set(FACE_W / 2 + 1.6, B + 0.6, DEPTH / 2 + 1.6); est.gato.rotation.y = -0.5; g.add(est.gato);
   const base = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.5, 0.6, 20), lamb('#CFC8BA')); base.position.set(FACE_W / 2 + 1.9, B + 0.3, DEPTH / 2 + 1.6); g.add(base);
-  colisores.push({ x0: SIMBA.x - FACE_W / 2 - 4, x1: SIMBA.x + FACE_W / 2, z0: SIMBA.z - DEPTH / 2 - 4, z1: SIMBA.z + DEPTH / 2 });
+  colisores.push({ x0: SIMBA.x - FACE_W / 2, x1: SIMBA.x + FACE_W / 2, z0: SIMBA.z - DEPTH / 2, z1: SIMBA.z + DEPTH / 2 }, { x0: SIMBA.x + FACE_W / 2 + 0.3, x1: SIMBA.x + FACE_W / 2 + 3.5, z0: SIMBA.z + DEPTH / 2, z1: SIMBA.z + DEPTH / 2 + 3.2 });
   return { g, janelas, corpo, rabo: est.rabo, pisca: b.pisca, hp };
 }
 
@@ -724,14 +724,14 @@ export default function Building({
     aplicarRotulos(todosRef.current);
     let beacon: THREE.Mesh | null = null;
     const noSimba = foco?.predio === 'simba';
-    const NF = new THREE.Vector3(0, 0, noSimba ? -1 : 1), DIR = new THREE.Vector3(noSimba ? -1 : 1, 0, 0); // frente e direita da fachada
+    const NF = new THREE.Vector3(0, 0, 1), DIR = new THREE.Vector3(1, 0, 0); // frente e direita da fachada (os dois prédios olham pra mesma rua)
     const janelaFoco = () => { const p = windowPos(foco!.andar, foco!.unidade); return noSimba ? simbaMundo(p) : p; };
     const em = (p: THREE.Vector3, dir: number, frente: number, cima = 0) => p.clone().addScaledVector(DIR, dir).addScaledVector(NF, frente).add(new THREE.Vector3(0, cima, 0));
     if (foco) {
       const s = textSprite('@' + foco.handle, true); const p = janelaFoco();
       s.position.copy(em(p, 0, 0.7, B + 1.65)); scene.add(s);
       beacon = new THREE.Mesh(new THREE.RingGeometry(1.15, 1.45, 40), new THREE.MeshBasicMaterial({ color: COLS.grua, transparent: true, toneMapped: false }));
-      beacon.position.copy(em(p, 0, 0.05, B)); if (noSimba) beacon.rotation.y = Math.PI; scene.add(beacon);
+      beacon.position.copy(em(p, 0, 0.05, B)); scene.add(beacon);
     }
 
     // câmera
@@ -787,8 +787,8 @@ export default function Building({
     renderer.domElement.addEventListener('pointerdown', pd); renderer.domElement.addEventListener('pointerup', pu);
     const irSimba = () => {
       if (!simba) return; anim = false;
-      const alvo = new THREE.Vector3(SIMBA.x, B + Math.min(simba.hp, 12) * 0.5 + 1.5, SIMBA.z - DEPTH / 2);
-      animBase = { de: camera.position.clone(), ate: alvo.clone().add(new THREE.Vector3(-5, 4, -22 - Math.min(simba.hp, 40) * 0.6)), alvoDe: controls.target.clone(), alvoAte: alvo }; t0 = performance.now();
+      const alvo = new THREE.Vector3(SIMBA.x, B + Math.min(simba.hp, 12) * 0.5 + 1.5, SIMBA.z + DEPTH / 2);
+      animBase = { de: camera.position.clone(), ate: alvo.clone().add(new THREE.Vector3(6, 4, 21 + Math.min(simba.hp, 40) * 0.6)), alvoDe: controls.target.clone(), alvoAte: alvo }; t0 = performance.now();
     };
     window.addEventListener('ir-simba', irSimba);
     const irFama = () => {
@@ -827,7 +827,7 @@ export default function Building({
       if (naRua?.current && !jogador && foco) {
         const c = corpoInteiro(foco.handle, visualFoco);
         const pl = windowPos(foco.andar, foco.unidade); const rua = new THREE.Vector3(Math.max(-5, Math.min(5, pl.x)), B, DEPTH / 2 + 2.2);
-        c.g.position.copy(noSimba ? simbaMundo(rua) : rua); if (noSimba) c.g.rotation.y = Math.PI;
+        c.g.position.copy(noSimba ? simbaMundo(rua) : rua);
         const nome = textSprite('@' + foco.handle, true); nome.scale.multiplyScalar(0.5); scene.add(nome);
         scene.add(c.g); jogador = { c, nome, acenaAte: 0, falaAte: 0 };
         const b2 = c;
