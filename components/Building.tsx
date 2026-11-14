@@ -133,7 +133,7 @@ function montarCidade(scene: THREE.Scene, colisores: Caixa[]): Carros {
   for (let i = -4; i <= 4; i++) for (let j = -5; j <= 1; j++) {
     const cx = i * 44, cz = j * 40;
     const cal = new THREE.Mesh(calcadaGeo, calcadaMat); cal.scale.set(36, 1, 31); cal.position.set(cx, 0.12, cz); scene.add(cal);
-    if (i === 0 && j === 0) { [-14, 14].forEach((x) => arvore(x, 12.5, 0.9)); continue; } // lote do nosso prédio
+    if (i === 0 && j === 0) { arvore(-14, 12.5, 0.9); continue; } // lote do nosso prédio
     if (j === 1) {
       if (i === 0) { // praça na frente do prédio
         const g = new THREE.Mesh(new THREE.BoxGeometry(32, 0.3, 26), lamb('#5FA35C')); g.position.set(cx, 0.2, cz); scene.add(g);
@@ -218,6 +218,142 @@ function montarNuvens(scene: THREE.Scene, H: number): { lista: Nuvem[]; lim: num
     lista.push({ s, v: (1.2 + Math.random() * 2.6) * (y > H * 0.5 ? 1.4 : 1) });
   }
   return { lista, lim };
+}
+
+
+// Padaria da Dona Neusa: ocupa as janelas 102 e 103 (votação dos seguidores). Fachada, toldo, letreiro, pães e a Dona Neusa no balcão.
+const PADARIA_UNIDADES = [2, 3]; // aptos do 1º andar que viraram padaria
+const ehPadaria = (numero: number) => numero <= U && PADARIA_UNIDADES.includes(numero);
+function canvasTex(w: number, h: number, pintar: (ctx: CanvasRenderingContext2D) => void) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  pintar(c.getContext('2d')!);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+}
+function montarPadaria(predio: THREE.Group) {
+  const g = new THREE.Group(); predio.add(g);
+  const a = windowPos(1, PADARIA_UNIDADES[0]), b = windowPos(1, PADARIA_UNIDADES[1]);
+  const cx = (a.x + b.x) / 2, W = b.x - a.x + WIN_W, z0 = DEPTH / 2;
+  const madeira = new THREE.MeshLambertMaterial({ color: '#6B3F22' });
+  const add = (geo: THREE.BufferGeometry, mat: THREE.Material, x: number, y: number, z: number) => { const m = new THREE.Mesh(geo, mat); m.position.set(cx + x, y, z0 + z); g.add(m); return m; };
+
+  // moldura de madeira cobrindo a fachada (inclusive a faixa de pastilha)
+  add(new THREE.BoxGeometry(W + 0.36, 2.42, 0.08), madeira, 0, 1.19, 0.04);
+  // interior iluminado
+  add(new THREE.PlaneGeometry(W, 1.95), new THREE.MeshBasicMaterial({ color: '#FFC98A', toneMapped: false }), 0, 1.2, 0.09);
+  // prateleiras com pães
+  const pratGeo = new THREE.BoxGeometry(W - 0.2, 0.05, 0.24);
+  for (const y of [1.5, 1.92]) add(pratGeo, madeira, 0, y, 0.2);
+  const pao = new THREE.SphereGeometry(0.09, 10, 8); pao.scale(1.5, 0.75, 1);
+  const baguete = new THREE.CapsuleGeometry(0.045, 0.32, 4, 8); baguete.rotateZ(Math.PI / 2 - 0.25);
+  const corPao = ['#D9953F', '#C97E2E', '#E3A85A', '#B86F26'];
+  for (const [i, y] of [1.5, 1.92].entries()) for (let k = 0; k < 9; k++) {
+    const m = new THREE.MeshLambertMaterial({ color: corPao[(k + i) % corPao.length] });
+    const x = -W / 2 + 0.3 + k * ((W - 0.6) / 8);
+    if ((k + i) % 3 === 2) add(baguete, m, x, y + 0.1, 0.2); else add(pao, m, x, y + 0.08, 0.2);
+  }
+  // balcão com vitrine de doces
+  add(new THREE.BoxGeometry(W - 0.1, 0.62, 0.3), new THREE.MeshLambertMaterial({ color: '#F3E3C3' }), 0.25, 0.42, 0.52);
+  add(new THREE.BoxGeometry(W - 0.04, 0.06, 0.36), madeira, 0.25, 0.76, 0.52);
+  const doce = new THREE.SphereGeometry(0.06, 8, 6);
+  const corDoce = ['#F7A6C1', '#FFF4E0', '#8B4A2B', '#F7C531'];
+  for (let k = 0; k < 10; k++) add(doce, new THREE.MeshLambertMaterial({ color: corDoce[k % 4] }), -W / 2 + 0.9 + k * 0.2, 0.84, 0.52 + (k % 2 ? 0.06 : -0.06));
+
+  // Dona Neusa atrás do balcão: avental e touca brancos
+  const neusa = corpoInteiro('dona.neusa', { pele: 1, genero: 1, cabelo: 3, corCabelo: 5, camisa: 1 }, 0.5);
+  const branco = new THREE.MeshLambertMaterial({ color: '#FFFFFF' });
+  const corpo = neusa.g.children[0] as THREE.Group;
+  const avental = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.78, 0.05), branco); avental.position.set(0, 1.35, 0.3); corpo.add(avental);
+  const touca = new THREE.Mesh(new THREE.CylinderGeometry(0.33, 0.3, 0.2, 18), branco); touca.position.set(0, 2.66, 0); corpo.add(touca);
+  neusa.g.children[1].visible = false; // sem sombra no chão da loja
+  neusa.g.position.set(cx - W / 2 + 0.75, 0.12, z0 + 0.3);
+  g.add(neusa.g);
+
+  // vidro da vitrine
+  const vidro = add(new THREE.PlaneGeometry(W, 2.05), new THREE.MeshLambertMaterial({ color: '#D6F1FF', transparent: true, opacity: 0.13, depthWrite: false }), 0, 1.15, 0.72);
+  vidro.renderOrder = 2;
+  // placa "ABERTO" piscando no vidro
+  const aberto = add(new THREE.PlaneGeometry(0.62, 0.22), new THREE.MeshBasicMaterial({ toneMapped: false, transparent: true, map: canvasTex(256, 90, (c) => {
+    c.fillStyle = '#2A0F0A'; c.beginPath(); c.roundRect(0, 0, 256, 90, 18); c.fill();
+    c.strokeStyle = '#FF4B3A'; c.lineWidth = 6; c.beginPath(); c.roundRect(6, 6, 244, 78, 14); c.stroke();
+    c.fillStyle = '#FF6B5A'; c.font = '900 52px Archivo, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('ABERTO', 128, 48);
+  }) }), W / 2 - 0.5, 1.75, 0.73);
+
+  // toldo listrado
+  const listras = canvasTex(512, 64, (c) => { for (let i = 0; i < 16; i++) { c.fillStyle = i % 2 ? '#FFF6EA' : '#D63A2F'; c.fillRect(i * 32, 0, 32, 64); } });
+  const toldo = add(new THREE.PlaneGeometry(W + 0.4, 1.0), new THREE.MeshLambertMaterial({ map: listras, side: THREE.DoubleSide }), 0, 2.3, 0.5);
+  toldo.rotation.x = -Math.PI / 2 + 0.55;
+  const franja = canvasTex(512, 64, (c) => {
+    for (let i = 0; i < 16; i++) { c.fillStyle = i % 2 ? '#FFF6EA' : '#D63A2F'; c.beginPath(); c.moveTo(i * 32, 0); c.lineTo(i * 32 + 32, 0); c.lineTo(i * 32 + 32, 34); c.arc(i * 32 + 16, 34, 16, 0, Math.PI); c.closePath(); c.fill(); }
+  });
+  add(new THREE.PlaneGeometry(W + 0.4, 0.22), new THREE.MeshLambertMaterial({ map: franja, transparent: true, side: THREE.DoubleSide }), 0, 1.95, 0.93);
+
+  // letreiro entre o 1º e o 2º andar
+  const letreiro = canvasTex(1024, 180, (c) => {
+    c.fillStyle = '#3B2214'; c.beginPath(); c.roundRect(0, 0, 1024, 180, 26); c.fill();
+    c.strokeStyle = '#F7C531'; c.lineWidth = 8; c.beginPath(); c.roundRect(10, 10, 1004, 160, 20); c.stroke();
+    c.fillStyle = '#FFE7B8'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.font = '900 76px Archivo, sans-serif'; c.fillText('Padaria da Dona Neusa', 512, 76);
+    c.fillStyle = '#F7C531'; c.font = '800 36px Archivo, sans-serif'; c.fillText('PÃO QUENTINHO TODO DIA', 512, 138);
+  });
+  add(new THREE.BoxGeometry(W + 0.3, 0.56, 0.08), madeira, 0, 3.1, 0.32);
+  add(new THREE.PlaneGeometry(W + 0.26, 0.52), new THREE.MeshBasicMaterial({ map: letreiro, toneMapped: false }), 0, 3.1, 0.365);
+
+  return { neusa, aberto: aberto.material as THREE.MeshBasicMaterial };
+}
+
+
+// Prédio Simba: um andar só, ao lado do prédio principal, em homenagem ao gatinho Simba de um inscrito. Só o @vitorcosta47 mora aqui.
+const SIMBA_MORADOR = 'vitorcosta47';
+function montarSimba(scene: THREE.Scene, colisores: Caixa[], B: number) {
+  const g = new THREE.Group(); scene.add(g);
+  const cx = FACE_W / 2 + 5.6, cz = -0.5, w = 6.2, d = 6, h = 3.3;
+  const zf = cz + d / 2;
+  const lamb = (color: THREE.ColorRepresentation) => new THREE.MeshLambertMaterial({ color });
+  const add = (geo: THREE.BufferGeometry, mat: THREE.Material, x: number, y: number, z: number) => { const m = new THREE.Mesh(geo, mat); m.position.set(cx + x, B + y, z); g.add(m); return m; };
+  // corpo, faixa de pastilha e platibanda
+  add(new THREE.BoxGeometry(w, h, d), lamb('#F2D1A8'), 0, h / 2, cz);
+  add(new THREE.BoxGeometry(w + 0.1, 0.7, d + 0.1), lamb('#C9733B'), 0, 0.35, cz);
+  add(new THREE.BoxGeometry(w + 0.4, 0.24, d + 0.4), lamb('#E9E2D6'), 0, h + 0.12, cz);
+  // porta
+  add(new THREE.BoxGeometry(1.1, 2.0, 0.08), lamb('#7A4A2A'), 1.75, 1.0, zf + 0.04);
+  add(new THREE.SphereGeometry(0.06, 8, 6), lamb('#F7C531'), 1.4, 1.0, zf + 0.1);
+  // janela do apê (acesa)
+  const jx = -1.0, jy = 1.75;
+  add(new THREE.PlaneGeometry(WIN_W * 1.3, WIN_H), new THREE.MeshBasicMaterial({ color: COLS.acesa, toneMapped: false }), jx, jy, zf + 0.03);
+  add(new THREE.BoxGeometry(WIN_W * 1.3 + 0.16, 0.16, 0.34), lamb('#EFE9DE'), jx, jy - WIN_H / 2 + 0.08, zf + 0.17);
+  // o morador
+  const vitor = corpoInteiro(SIMBA_MORADOR, null, 0.5);
+  vitor.g.children[1].visible = false;
+  vitor.g.position.set(cx + jx - 0.15, B + jy - 1.12, zf + 0.12); g.add(vitor.g);
+  // gatinho no parapeito
+  const pelo = lamb('#E3A85A'), listra = lamb('#C9733B');
+  const sx = cx + jx + 0.5, sy = B + jy - WIN_H / 2 + 0.16, sz = zf + 0.22;
+  const gato = new THREE.Group(); gato.position.set(sx, sy, sz); g.add(gato);
+  const peca = (geo: THREE.BufferGeometry, mat: THREE.Material, x: number, y: number, z: number) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); gato.add(m); return m; };
+  peca(new RoundedBoxGeometry(0.34, 0.22, 0.2, 2, 0.06), pelo, 0, 0.11, 0);
+  peca(new RoundedBoxGeometry(0.22, 0.2, 0.2, 2, 0.06), pelo, 0.2, 0.27, 0.02);
+  for (const ox of [0.14, 0.26]) { const o = peca(new THREE.ConeGeometry(0.045, 0.09, 4), pelo, ox, 0.41, 0.02); o.rotation.y = Math.PI / 4; }
+  const rabo = peca(new THREE.CapsuleGeometry(0.03, 0.26, 4, 8), listra, -0.2, 0.22, 0); rabo.rotation.z = 0.5;
+  for (const lx of [-0.06, 0.06]) peca(new THREE.BoxGeometry(0.03, 0.2, 0.21), listra, lx, 0.12, 0);
+  for (const ex of [0.16, 0.24]) peca(new THREE.SphereGeometry(0.022, 8, 6), lamb('#1B2140'), ex, 0.29, 0.12);
+  // letreiro na platibanda
+  const tex = canvasTex(1024, 220, (c) => {
+    c.fillStyle = '#1B2140'; c.beginPath(); c.roundRect(0, 0, 1024, 220, 30); c.fill();
+    c.strokeStyle = '#E3A85A'; c.lineWidth = 10; c.beginPath(); c.roundRect(12, 12, 1000, 196, 22); c.stroke();
+    const pata = (x: number, y: number, r: number) => { c.fillStyle = '#E3A85A'; c.beginPath(); c.ellipse(x, y + r * 0.5, r, r * 0.8, 0, 0, Math.PI * 2); c.fill(); for (const [dx, dy] of [[-0.9, -0.7], [-0.32, -1.15], [0.32, -1.15], [0.9, -0.7]]) { c.beginPath(); c.ellipse(x + dx * r, y + dy * r, r * 0.32, r * 0.38, 0, 0, Math.PI * 2); c.fill(); } };
+    pata(110, 112, 34); pata(914, 112, 34);
+    c.fillStyle = '#FFE7B8'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.font = '900 92px Archivo, sans-serif'; c.fillText('Edifício Simba', 512, 92);
+    c.fillStyle = '#E3A85A'; c.font = '800 38px Archivo, sans-serif'; c.fillText('em homenagem ao gatinho Simba', 512, 164);
+  });
+  const placa = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 0.99), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }));
+  placa.position.set(cx, B + h + 0.85, zf + 0.05); g.add(placa);
+  add(new THREE.BoxGeometry(0.12, 0.6, 0.12), lamb('#5B5F6E'), -1.8, h + 0.3, cz + d / 2 - 0.1);
+  add(new THREE.BoxGeometry(0.12, 0.6, 0.12), lamb('#5B5F6E'), 1.8, h + 0.3, cz + d / 2 - 0.1);
+  // plaquinha do morador
+  const sp = plaquinha('@' + SIMBA_MORADOR); sp.position.set(cx + jx, B + jy - WIN_H / 2 - 0.26, zf + 0.42); g.add(sp);
+  colisores.push({ x0: cx - w / 2, x1: cx + w / 2, z0: cz - d / 2, z1: cz + d / 2 });
+  return { vitor, gato, rabo };
 }
 
 function moverCarros(carros: Carros, dt: number) {
@@ -387,12 +523,15 @@ export default function Building({
     for (let n = 1; n <= total; n++) {
       const andar = Math.floor((n - 1) / U) + 1, un = ((n - 1) % U) + 1;
       const p = windowPos(andar, un);
-      m4.makeTranslation(p.x, p.y, p.z); janelas.setMatrixAt(n - 1, m4);
-      m4.makeTranslation(p.x, p.y - WIN_H / 2 + 0.08, p.z + 0.16); parapeito.setMatrixAt(n - 1, m4);
+      const loja = andar === 1 && PADARIA_UNIDADES.includes(un);
+      m4.makeTranslation(p.x, p.y, p.z); if (loja) m4.scale(new THREE.Vector3(0, 0, 0)); janelas.setMatrixAt(n - 1, m4);
+      m4.makeTranslation(p.x, p.y - WIN_H / 2 + 0.08, p.z + 0.16); if (loja) m4.scale(new THREE.Vector3(0, 0, 0)); parapeito.setMatrixAt(n - 1, m4);
       if (n <= ocupados) { cor.set(COLS.acesa); cor.offsetHSL(((n * 37) % 11) / 400 - 0.012, 0, ((n * 13) % 7) / 90 - 0.03); } else cor.set(COLS.apagada);
       janelas.setColorAt(n - 1, cor);
     }
     predio.add(janelas, parapeito);
+    const padaria = montarPadaria(predio);
+    const simba = montarSimba(scene, colisores, B);
     const lat = new THREE.InstancedMesh(winGeo, new THREE.MeshBasicMaterial({ color: '#ffffff', toneMapped: false }), andaresProntos * 6);
     let k = 0;
     for (let a = 1; a <= andaresProntos; a++) for (let s = 0; s < 2; s++) for (let j = 0; j < 3; j++) {
@@ -424,8 +563,9 @@ export default function Building({
       n.fala = balao(quem, texto); n.falaAte = agora + dura * 1000; scene.add(n.fala);
     };
     let ultimoNasc = 0, pertoAtual: string | null = null;
-    fetch(`/api/janelas?ate=${Math.min(4000, total)}`).then((r) => (r.ok ? r.json() : [])).then((lista: Janela[]) => {
+    fetch(`/api/janelas?ate=${Math.min(10000, total)}`).then((r) => (r.ok ? r.json() : [])).then((lista: Janela[]) => {
       if (!vivo || !Array.isArray(lista)) return;
+      lista = lista.filter((x) => !ehPadaria(x[0])); // ninguém mora dentro da padaria
       const b = montarBonecos(lista, janelas, total);
       predio.add(b.grupo); pisca = b.pisca;
       // moradores que vão sair do prédio pra passear
@@ -518,6 +658,8 @@ export default function Building({
       raf = requestAnimationFrame(loop);
       if (document.hidden) { antes = now; return; }
       const dt = Math.min(0.1, (now - antes) / 1000); antes = now;
+      { const ts = now / 1000; const ciclo = ts % 9; animar(padaria.neusa, !reduce && ciclo < 2.2 ? 'acenando' : 'parado', ts); padaria.aberto.opacity = reduce || Math.sin(ts * 3) > -0.6 ? 1 : 0.35;
+        animar(simba.vitor, !reduce && (ts + 4) % 11 < 2 ? 'acenando' : 'parado', ts); if (!reduce) simba.rabo.rotation.z = 0.5 + Math.sin(ts * 2.2) * 0.35; }
       if (!reduce) for (const nv of nuvens.lista) { nv.s.position.x += nv.v * dt; if (nv.s.position.x > nuvens.lim) nv.s.position.x = -nuvens.lim; }
       if (anim) {
         const x = Math.min(1, (now - t0) / 1000 / dur); const e = ease(x);
